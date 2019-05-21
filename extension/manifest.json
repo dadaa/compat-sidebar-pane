@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+  "name": "compat-sidebar-pane",
+  "version": "1.0",
+  "description": "",
+  "applications": {
+    "gecko": {
+      "id": "compat-sidebar-pane@firefox-dev.tools"
+    }
+  },
+  "permissions": [
+  ],
+  "background": {
+    "scripts": [
+      "compat-data.js",
+      "background.js"
+    ]
+  },
+  "devtools_page": "devtools.html",
+  "experiment_apis": {
+    "inspectedNode": {
+      "schema": "experiments/inspectedNode/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "experiments/inspectedNode/api.js",
+        "paths": [["experiments", "inspectedNode"]]
+      }
+    }
+  },
+  "web_accessible_resources": [
+    "images/warning.svg"
+  ]
+}

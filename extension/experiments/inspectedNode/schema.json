@@ -1,0 +1,12 @@
+[
+  {
+    "namespace": "experiments.inspectedNode",
+    "events": [
+      {
+        "name": "onChange",
+        "type": "function",
+        "parameters": []
+      }
+    ]
+  }
+]
