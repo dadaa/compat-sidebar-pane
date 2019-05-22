@@ -13,6 +13,7 @@
   "background": {
     "scripts": [
       "compat-data.js",
+      "lib/mdn-browser-compat.js",
       "background.js"
     ]
   },
