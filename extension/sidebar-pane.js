@@ -12,25 +12,30 @@ port.onMessage.addListener(issueList => {
 
   const ulEl = document.createElement("ul");
   for (const { name, propertyIssues, value, valueIssues } of issueList) {
-    const nameEl = renderList(`${ name } property`, propertyIssues);
-    if (nameEl) {
-      ulEl.appendChild(nameEl);
+    if (propertyIssues && propertyIssues.length) {
+      const titleEl = document.createElement("label");
+      titleEl.classList.add("name");
+      titleEl.textContent = name;
+      ulEl.appendChild(renderList(titleEl, propertyIssues));
     }
 
-    const valueEl = renderList(`${ name }:${ value } value`, valueIssues);
-    if (valueEl) {
-      ulEl.appendChild(valueEl);
+    if (valueIssues && valueIssues.length) {
+      const titleEl = document.createElement("span");
+      const labelEl = document.createElement("label");
+      labelEl.textContent = `${ name }: `;
+      const valueEl = document.createElement("label");
+      valueEl.textContent = value;
+      valueEl.classList.add("value");
+      titleEl.appendChild(labelEl);
+      titleEl.appendChild(valueEl);
+      ulEl.appendChild(renderList(titleEl, valueIssues));
     }
   }
 
   mainEl.appendChild(ulEl);
 });
 
-function renderList(title, browsers) {
-  if (!browsers || browsers.length === 0) {
-    return null;
-  }
-
+function renderList(titleEl, browsers) {
   const map = {};
   for (const { brandName, version } of browsers) {
     if (!map[brandName]) {
@@ -46,11 +51,8 @@ function renderList(title, browsers) {
   }
 
   const liEl = document.createElement("li");
-  const titleEl = document.createElement("label");
-  titleEl.textContent = title;
-  titleEl.classList.add("title");
   const browsersEl = document.createElement("label");
-  browsersEl.textContent = `is not supported in ${ browserText }.`;
+  browsersEl.textContent = ` is not supported in ${ browserText }.`;
   browsersEl.classList.add("browsers");
   liEl.appendChild(titleEl);
   liEl.appendChild(browsersEl);
