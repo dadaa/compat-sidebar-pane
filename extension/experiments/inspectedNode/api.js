@@ -7,6 +7,8 @@ this.inspectedNode = class extends ExtensionAPI {
     const { require } = Cu.import("resource://devtools/shared/Loader.jsm");
     const { gDevTools } = require("devtools/client/framework/devtools");
 
+    const _observers = new WeakMap();
+
     const _notify = async (inspector, fire) => {
       const node = inspector.selection.nodeFront;
       const pageStyle = await inspector.getPageStyle();
@@ -31,6 +33,15 @@ this.inspectedNode = class extends ExtensionAPI {
       inspector.selection.on("new-node-front", listener);
 
       _notify(inspector, fire);
+
+      _observers.set(fire, { inspector, listener });
+    };
+
+    const _unobserve = fire => {
+      const { inspector, listener } = _observers.get(fire);
+      inspector.off("new-root", listener);
+      inspector.selection.off("new-node-front", listener);
+      _observers.delete(fire);
     };
 
     return {
@@ -43,7 +54,7 @@ this.inspectedNode = class extends ExtensionAPI {
               _observe(fire);
 
               return () => {
-                console.log("TODO: Need to clean up");
+                _unobserve(fire);
               };
             },
           }).api()

@@ -4,7 +4,7 @@ const compatData = getCompatData();
 const targetBrowsers = getTargetBrowsers(compatData);
 
 browser.runtime.onConnect.addListener(port => {
-  browser.experiments.inspectedNode.onChange.addListener(declarations => {
+  const listener = declarations => {
     const propertiesCompatData = compatData.css.properties;
     const issueList = [];
 
@@ -47,6 +47,11 @@ browser.runtime.onConnect.addListener(port => {
     }
 
     port.postMessage(issueList);
+  };
+
+  browser.experiments.inspectedNode.onChange.addListener(listener);
+  port.onDisconnect.addListener(() => {
+    browser.experiments.inspectedNode.onChange.removeListener(listener);
   });
 });
 
