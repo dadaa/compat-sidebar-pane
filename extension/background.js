@@ -8,18 +8,18 @@ browser.runtime.onConnect.addListener(port => {
     const propertiesCompatData = compatData.css.properties;
     const issueList = [];
 
-    for (const { name, value, isValid } of declarations) {
+    for (const { name: property, value, isValid } of declarations) {
       if (!isValid) {
         if (value) {
-          issueList.push({ name, value,
-                           propertyIssues: [], valueIssues: targetBrowsers });
+          issueList.push({ property, propertyIssues: [],
+                           value, valueIssues: targetBrowsers });
         } else {
-          issueList.push({ name, propertyIssues: targetBrowsers });
+          issueList.push({ property, propertyIssues: targetBrowsers });
         }
         continue;
       }
 
-      const propertyCompatData = propertiesCompatData[name];
+      const propertyCompatData = propertiesCompatData[property];
       if (!propertyCompatData) {
         continue;
       }
@@ -27,7 +27,7 @@ browser.runtime.onConnect.addListener(port => {
       const propertyIssues =
         this.getUnsupportedBrowsers(propertyCompatData, targetBrowsers);
       const issue = {
-        name,
+        property,
         propertyIssues,
       };
 

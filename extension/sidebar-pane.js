@@ -11,22 +11,22 @@ port.onMessage.addListener(issueList => {
   }
 
   const ulEl = document.createElement("ul");
-  for (const { name, propertyIssues, value, valueIssues } of issueList) {
+  for (const { property, propertyIssues, value, valueIssues } of issueList) {
     if (propertyIssues && propertyIssues.length) {
-      const titleEl = document.createElement("label");
-      titleEl.classList.add("name");
-      titleEl.textContent = name;
-      ulEl.appendChild(renderList(titleEl, propertyIssues));
+      const propertyEl = document.createElement("label");
+      propertyEl.classList.add("property");
+      propertyEl.textContent = property;
+      ulEl.appendChild(renderList(propertyEl, propertyIssues));
     }
 
     if (valueIssues && valueIssues.length) {
       const titleEl = document.createElement("span");
-      const labelEl = document.createElement("label");
-      labelEl.textContent = `${ name }: `;
+      const propertyEl = document.createElement("label");
+      propertyEl.textContent = `${ property }: `;
       const valueEl = document.createElement("label");
       valueEl.textContent = value;
       valueEl.classList.add("value");
-      titleEl.appendChild(labelEl);
+      titleEl.appendChild(propertyEl);
       titleEl.appendChild(valueEl);
       ulEl.appendChild(renderList(titleEl, valueIssues));
     }
