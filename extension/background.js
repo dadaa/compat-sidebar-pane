@@ -7,13 +7,12 @@ browser.runtime.onConnect.addListener(port => {
   const listener = declarations => {
     const issueList = [];
 
-    for (const { name: property, value, isValid } of declarations) {
+    for (const { name: property, value, isValid, isNameValid } of declarations) {
       if (!isValid) {
-        if (value) {
-          issueList.push({ property, propertyIssues: [],
-                           value, valueIssues: targetBrowsers });
+        if (!isNameValid) {
+          issueList.push({ property, isValid });
         } else {
-          issueList.push({ property, propertyIssues: targetBrowsers });
+          issueList.push({ property, value, isValid });
         }
         continue;
       }
@@ -41,7 +40,11 @@ browser.runtime.onConnect.addListener(port => {
         }
       }
 
-      issueList.push({ property, propertyIssues, value, valueIssues });
+      if (propertyIssues.length === 0 && valueIssues.length === 0) {
+        continue;
+      }
+
+      issueList.push({ property, propertyIssues, value, valueIssues, isValid });
     }
 
     port.postMessage(issueList);

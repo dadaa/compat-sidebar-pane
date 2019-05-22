@@ -9,33 +9,64 @@ port.onMessage.addListener(issueList => {
     mainEl.textContent = "No issues";
     return;
   }
+  console.log(issueList);
 
   const ulEl = document.createElement("ul");
-  for (const { property, propertyIssues, value, valueIssues } of issueList) {
-    if (propertyIssues && propertyIssues.length) {
-      const propertyEl = document.createElement("label");
-      propertyEl.classList.add("property");
-      propertyEl.textContent = property;
-      ulEl.appendChild(renderList(propertyEl, propertyIssues));
-    }
+  for (const { property, propertyIssues, value, valueIssues, isValid } of issueList) {
+    if (isValid) {
+      // Not supported
+      if (propertyIssues.length) {
+        const titleEl = createPropertyIssueLabel(property);
+        const resultEl = renderNotSupported(titleEl, propertyIssues);
+        ulEl.appendChild(resultEl);
+      }
 
-    if (valueIssues && valueIssues.length) {
-      const titleEl = document.createElement("span");
-      const propertyEl = document.createElement("label");
-      propertyEl.textContent = `${ property }: `;
-      const valueEl = document.createElement("label");
-      valueEl.textContent = value;
-      valueEl.classList.add("value");
-      titleEl.appendChild(propertyEl);
-      titleEl.appendChild(valueEl);
-      ulEl.appendChild(renderList(titleEl, valueIssues));
+      if (valueIssues.length) {
+        const titleEl = createPropertyValueIssueLabel(property, value);
+        const resultEl = renderNotSupported(titleEl, valueIssues);
+        ulEl.appendChild(resultEl);
+      }
+    } else {
+      // Invalid
+      const titleEl = value ? createPropertyValueIssueLabel(property, value)
+                            : createPropertyIssueLabel(property);
+      const resultEl = renderInvalid(titleEl);
+      ulEl.appendChild(resultEl);
     }
   }
 
   mainEl.appendChild(ulEl);
 });
 
-function renderList(titleEl, browsers) {
+function createPropertyIssueLabel(property) {
+  const propertyEl = document.createElement("label");
+  propertyEl.classList.add("property");
+  propertyEl.textContent = property;
+  return propertyEl;
+}
+
+function createPropertyValueIssueLabel(property, value) {
+  const titleEl = document.createElement("span");
+  const propertyEl = document.createElement("label");
+  propertyEl.textContent = `${ property }: `;
+  const valueEl = document.createElement("label");
+  valueEl.textContent = value;
+  valueEl.classList.add("value");
+  titleEl.appendChild(propertyEl);
+  titleEl.appendChild(valueEl);
+  return titleEl;
+}
+
+function renderInvalid(titleEl) {
+  const liEl = document.createElement("li");
+  const invalidEl = document.createElement("label");
+  invalidEl.textContent = ` is invalid.`;
+  liEl.appendChild(titleEl);
+  liEl.appendChild(invalidEl);
+  return liEl;
+}
+
+function renderNotSupported(titleEl, browsers) {
   const map = {};
   for (const { brandName, version } of browsers) {
     if (!map[brandName]) {
