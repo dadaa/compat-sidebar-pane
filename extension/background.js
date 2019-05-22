@@ -10,7 +10,12 @@ browser.runtime.onConnect.addListener(port => {
 
     for (const { name, value, isValid } of declarations) {
       if (!isValid) {
-        issueList.push({ name, propertyIssues: targetBrowsers });
+        if (value) {
+          issueList.push({ name, value,
+                           propertyIssues: [], valueIssues: targetBrowsers });
+        } else {
+          issueList.push({ name, propertyIssues: targetBrowsers });
+        }
         continue;
       }
 
