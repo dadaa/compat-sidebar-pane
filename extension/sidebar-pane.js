@@ -9,7 +9,6 @@ port.onMessage.addListener(issueList => {
     mainEl.textContent = "No issues";
     return;
   }
-  console.log(issueList);
 
   const ulEl = document.createElement("ul");
   for (const { property, propertyIssues, value, valueIssues, isValid } of issueList) {
