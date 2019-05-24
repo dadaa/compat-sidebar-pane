@@ -1,11 +1,34 @@
 [
   {
     "namespace": "experiments.inspectedNode",
+    "functions": [
+      {
+        "name": "highlight",
+        "type": "function",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "ruleId"
+          },
+          {
+            "type": "string",
+            "name": "clientId"
+          }
+        ],
+        "async": true
+      }
+    ],
     "events": [
       {
         "name": "onChange",
         "type": "function",
-        "parameters": []
+        "parameters": [],
+        "extraParameters": [
+          {
+            "type": "string",
+            "name": "clientId"
+          }
+        ]
       }
     ]
   }

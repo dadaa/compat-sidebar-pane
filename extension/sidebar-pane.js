@@ -11,24 +11,26 @@ port.onMessage.addListener(issueList => {
   }
 
   const ulEl = document.createElement("ul");
-  for (const { property, propertyIssues, value, valueIssues, isValid } of issueList) {
+  for (const { property, propertyIssues,
+               value, valueIssues,
+               isValid, ruleId } of issueList) {
     if (isValid) {
       // Not supported
       if (propertyIssues.length) {
-        const titleEl = createPropertyIssueLabel(property);
+        const titleEl = createPropertyIssueLabel(property, ruleId);
         const resultEl = renderNotSupported(titleEl, propertyIssues);
         ulEl.appendChild(resultEl);
       }
 
       if (valueIssues.length) {
-        const titleEl = createPropertyValueIssueLabel(property, value);
+        const titleEl = createPropertyValueIssueLabel(property, value, ruleId);
         const resultEl = renderNotSupported(titleEl, valueIssues);
         ulEl.appendChild(resultEl);
       }
     } else {
       // Invalid
-      const titleEl = value ? createPropertyValueIssueLabel(property, value)
-                            : createPropertyIssueLabel(property);
+      const titleEl = value ? createPropertyValueIssueLabel(property, value, ruleId)
+                            : createPropertyIssueLabel(property, ruleId);
       const resultEl = renderInvalid(titleEl);
       ulEl.appendChild(resultEl);
     }
@@ -37,20 +39,28 @@ port.onMessage.addListener(issueList => {
   mainEl.appendChild(ulEl);
 });
 
-function createPropertyIssueLabel(property) {
+function onClick({ target }) {
+  port.postMessage({ ruleId: target.dataset.ruleId });
+}
+
+function createPropertyIssueLabel(property, ruleId) {
   const propertyEl = document.createElement("label");
   propertyEl.classList.add("property");
   propertyEl.textContent = property;
+  propertyEl.dataset.ruleId = ruleId;
+  propertyEl.addEventListener("click", onClick);
   return propertyEl;
 }
 
-function createPropertyValueIssueLabel(property, value) {
+function createPropertyValueIssueLabel(property, value, ruleId) {
   const titleEl = document.createElement("span");
   const propertyEl = document.createElement("label");
   propertyEl.textContent = `${ property }: `;
   const valueEl = document.createElement("label");
   valueEl.textContent = value;
   valueEl.classList.add("value");
+  valueEl.dataset.ruleId = ruleId;
+  valueEl.addEventListener("click", onClick);
   titleEl.appendChild(propertyEl);
   titleEl.appendChild(valueEl);
   return titleEl;

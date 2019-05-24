@@ -2,17 +2,36 @@
 
 const mdnBrowserCompat = new MDNBrowserCompat(getCompatData());
 const targetBrowsers = getTargetBrowsers();
+let currentPortNumber = 0;
 
 browser.runtime.onConnect.addListener(port => {
-  const listener = declarations => {
+  const observer = createObserver(port);
+  const clientId = `client-${ currentPortNumber++ }`;
+  browser.experiments.inspectedNode.onChange.addListener(observer, clientId);
+
+  const messageListener = ({ ruleId }) => {
+    browser.experiments.inspectedNode.highlight(ruleId, clientId);
+  };
+  port.onMessage.addListener(messageListener);
+
+  const disconnectedListener = () => {
+    browser.experiments.inspectedNode.onChange.removeListener(observer);
+    port.onDisconnect.removeListener(disconnectedListener);
+    port.onMessage.removeListener(messageListener);
+  };
+  port.onDisconnect.addListener(disconnectedListener);
+});
+
+function createObserver(port) {
+  return declarations => {
     const issueList = [];
 
-    for (const { name: property, value, isValid, isNameValid } of declarations) {
+    for (const { name: property, value, isValid, isNameValid, ruleId } of declarations) {
       if (!isValid) {
         if (!isNameValid) {
-          issueList.push({ property, isValid });
+          issueList.push({ property, isValid, ruleId });
         } else {
-          issueList.push({ property, value, isValid });
+          issueList.push({ property, value, isValid, ruleId });
         }
         continue;
       }
@@ -44,17 +63,12 @@ browser.runtime.onConnect.addListener(port => {
         continue;
       }
 
-      issueList.push({ property, propertyIssues, value, valueIssues, isValid });
+      issueList.push({ property, propertyIssues, value, valueIssues, isValid, ruleId });
     }
 
     port.postMessage(issueList);
   };
-
-  browser.experiments.inspectedNode.onChange.addListener(listener);
-  port.onDisconnect.addListener(() => {
-    browser.experiments.inspectedNode.onChange.removeListener(listener);
-  });
-});
+}
 
 function getTargetBrowsers() {
   const browsers = mdnBrowserCompat.getBrowsers();
