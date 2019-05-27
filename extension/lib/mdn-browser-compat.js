@@ -94,6 +94,7 @@ class MDNBrowserCompat {
       //       Thus, we choose first context if need.
       if (field.endsWith("_context")) {
         compatData = compatData[field];
+        break;
       }
     }
 
