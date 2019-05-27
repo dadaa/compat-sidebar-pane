@@ -20,7 +20,16 @@ browser.runtime.onConnect.addListener(port => {
     port.onMessage.removeListener(messageListener);
   };
   port.onDisconnect.addListener(disconnectedListener);
+
+  showAllIssues(port);
 });
+
+async function showAllIssues(port) {
+  const tabs = await browser.tabs.query({ currentWindow: true, active: true });
+  const currentTab = tabs[0];
+  const issueList = await getAllIssues(currentTab.id, targetBrowsers, mdnBrowserCompat);
+  port.postMessage({ type: "document", issueList });
+}
 
 function createObserver(port) {
   return declarations => {
@@ -66,7 +75,7 @@ function createObserver(port) {
       issueList.push({ property, propertyIssues, value, valueIssues, isValid, ruleId });
     }
 
-    port.postMessage(issueList);
+    port.postMessage({ type: "node", issueList });
   };
 }
 

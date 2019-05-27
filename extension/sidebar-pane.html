@@ -9,6 +9,11 @@
       line-height: 1.8;
     }
 
+    header {
+      color: #0c0c0d;
+      font-weight: 800;
+    }
+
     ul {
       list-style: url(./images/warning.svg);
     }
@@ -17,14 +22,16 @@
       margin-block-end: 4px;
     }
 
-    .property {
+    .clickable {
       cursor: pointer;
+    }
+
+    .property {
       font-weight: 800;
       color: #0074e8;
     }
 
     .value {
-      cursor: pointer;
       font-weight: 800;
       color: #dd00a9;
     }
@@ -32,6 +39,11 @@
     <script src="sidebar-pane.js"></script>
   </head>
   <body>
-    <main></main>
+    <main>
+      <header>Issues at selected node</header>
+      <section class="node"></section>
+      <header>Issues at whole document</header>
+      <section class="document"></section>
+    </main>
   </body>
 </html>

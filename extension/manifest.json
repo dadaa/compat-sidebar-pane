@@ -9,10 +9,14 @@
     }
   },
   "permissions": [
+    "<all_urls>"
   ],
   "background": {
     "scripts": [
+      "all-issues.js",
       "compat-data.js",
+      "css-lexer.js",
+      "css-tokenizer.js",
       "lib/mdn-browser-compat.js",
       "background.js"
     ]

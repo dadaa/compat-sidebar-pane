@@ -1,12 +1,13 @@
 "use strict";
 
 const port = browser.runtime.connect();
-port.onMessage.addListener(issueList => {
-  const mainEl = document.querySelector("main");
-  mainEl.innerHTML = "";
+port.onMessage.addListener(({ type, issueList }) => {
+  const sectionEl = type === "node" ? document.querySelector(".node")
+                                    : document.querySelector(".document");
+  sectionEl.innerHTML = "";
 
   if (!issueList.length) {
-    mainEl.textContent = "No issues";
+    sectionEl.textContent = "No issues";
     return;
   }
 
@@ -36,7 +37,7 @@ port.onMessage.addListener(issueList => {
     }
   }
 
-  mainEl.appendChild(ulEl);
+  sectionEl.appendChild(ulEl);
 });
 
 function onClick({ target }) {
@@ -47,8 +48,11 @@ function createPropertyIssueLabel(property, ruleId) {
   const propertyEl = document.createElement("label");
   propertyEl.classList.add("property");
   propertyEl.textContent = property;
-  propertyEl.dataset.ruleId = ruleId;
-  propertyEl.addEventListener("click", onClick);
+  if (ruleId) {
+    propertyEl.classList.add("clickable");
+    propertyEl.dataset.ruleId = ruleId;
+    propertyEl.addEventListener("click", onClick);
+  }
   return propertyEl;
 }
 
@@ -59,8 +63,11 @@ function createPropertyValueIssueLabel(property, value, ruleId) {
   const valueEl = document.createElement("label");
   valueEl.textContent = value;
   valueEl.classList.add("value");
-  valueEl.dataset.ruleId = ruleId;
-  valueEl.addEventListener("click", onClick);
+  if (ruleId) {
+    valueEl.classList.add("clickable");
+    valueEl.dataset.ruleId = ruleId;
+    valueEl.addEventListener("click", onClick);
+  }
   titleEl.appendChild(propertyEl);
   titleEl.appendChild(valueEl);
   return titleEl;

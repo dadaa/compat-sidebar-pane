@@ -24,6 +24,15 @@ class MDNBrowserCompat {
     return this.mdnCompatData.browsers;
   }
 
+  hasProperty(property) {
+    try {
+      this._getSupportMap(property, this.mdnCompatData.css.properties);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   getPropertyState(property, browser, version) {
     try {
       const supportMap = this._getSupportMap(property, this.mdnCompatData.css.properties);
