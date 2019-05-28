@@ -18,7 +18,7 @@ async function getAllIssues(tabId, targetBrowsers, mdnBrowserCompat) {
 }
 
 async function _analyzeStyleSheet(styleSheet, issueMap,
-                                  argetBrowsers, mdnBrowserCompat) {
+                                  targetBrowsers, mdnBrowserCompat) {
   const content = styleSheet.text || await _fetchContent(styleSheet.href);
   const cssTokenizer = new CSSTokenizer(content);
 
@@ -56,34 +56,70 @@ async function _analyzeStyleSheet(styleSheet, issueMap,
           continue;
         }
 
-        if (issueMap.has(property)) {
-          // Avoid duplication
-          continue;
-        }
-
         if (!mdnBrowserCompat.hasProperty(property)) {
           issueMap.set(property, { property, isValid: false });
           continue;
         }
 
-        const propertyIssues = [];
-        for (const targetBrowser of targetBrowsers) {
-          const support = mdnBrowserCompat.getPropertyState(property,
-                                                            targetBrowser.name,
-                                                            targetBrowser.version);
-          if (support !== MDNBrowserCompat.STATE.SUPPORTED) {
-            propertyIssues.push(targetBrowser);
-          }
-        }
+        _analyzeProperty(property, issueMap, targetBrowsers, mdnBrowserCompat);
 
-        if (propertyIssues.length) {
-          issueMap.set(property,
-                       { property, propertyIssues, valueIssues: [], isValid: true });
+        for (const valueToken of chunk.values) {
+          if (valueToken.tokenType !== "ident") {
+            continue;
+          }
+
+          _analyzePropertyValue(property, valueToken.text,
+                                issueMap, targetBrowsers, mdnBrowserCompat);
         }
       }
     } else if (chunk.unknown) {
       console.warn(chunk);
     }
+  }
+}
+
+function _analyzeProperty(property, issueMap, targetBrowsers, mdnBrowserCompat) {
+  if (issueMap.has(property)) {
+    // Avoid duplication
+    return;
+  }
+
+  const propertyIssues = [];
+  for (const targetBrowser of targetBrowsers) {
+    const support = mdnBrowserCompat.getPropertyState(property,
+                                                      targetBrowser.name,
+                                                      targetBrowser.version);
+    if (support !== MDNBrowserCompat.STATE.SUPPORTED) {
+      propertyIssues.push(targetBrowser);
+    }
+  }
+
+  if (propertyIssues.length) {
+    issueMap.set(property, { property, propertyIssues, isValid: true });
+  }
+}
+
+function _analyzePropertyValue(property, value,
+                               issueMap, targetBrowsers, mdnBrowserCompat) {
+  const key = `${ property }:${ value }`;
+  if (issueMap.has(key)) {
+    // Avoid duplication
+    return;
+  }
+
+  const valueIssues = [];
+  for (const targetBrowser of targetBrowsers) {
+    const support = mdnBrowserCompat.getPropertyValueState(property,
+                                                           value,
+                                                           targetBrowser.name,
+                                                           targetBrowser.version);
+    if (support === MDNBrowserCompat.STATE.UNSUPPORTED) {
+      valueIssues.push(targetBrowser);
+    }
+  }
+
+  if (valueIssues.length) {
+    issueMap.set(property, { property, value, valueIssues, isValid: true });
   }
 }
 

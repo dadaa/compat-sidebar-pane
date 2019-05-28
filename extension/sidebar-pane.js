@@ -17,13 +17,13 @@ port.onMessage.addListener(({ type, issueList }) => {
                isValid, ruleId } of issueList) {
     if (isValid) {
       // Not supported
-      if (propertyIssues.length) {
+      if (propertyIssues && propertyIssues.length) {
         const titleEl = createPropertyIssueLabel(property, ruleId);
         const resultEl = renderNotSupported(titleEl, propertyIssues);
         ulEl.appendChild(resultEl);
       }
 
-      if (valueIssues.length) {
+      if (value && valueIssues && valueIssues.length) {
         const titleEl = createPropertyValueIssueLabel(property, value, ruleId);
         const resultEl = renderNotSupported(titleEl, valueIssues);
         ulEl.appendChild(resultEl);
