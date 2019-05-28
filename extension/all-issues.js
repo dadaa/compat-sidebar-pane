@@ -84,18 +84,18 @@ function _analyzeProperty(property, issueMap, targetBrowsers, mdnBrowserCompat) 
     return;
   }
 
-  const propertyIssues = [];
+  const unsupportedBrowsers = [];
   for (const targetBrowser of targetBrowsers) {
     const support = mdnBrowserCompat.getPropertyState(property,
                                                       targetBrowser.name,
                                                       targetBrowser.version);
     if (support !== MDNBrowserCompat.STATE.SUPPORTED) {
-      propertyIssues.push(targetBrowser);
+      unsupportedBrowsers.push(targetBrowser);
     }
   }
 
-  if (propertyIssues.length) {
-    issueMap.set(property, { property, propertyIssues, isValid: true });
+  if (unsupportedBrowsers.length) {
+    issueMap.set(property, { property, unsupportedBrowsers, isValid: true });
   }
 }
 
@@ -107,19 +107,19 @@ function _analyzePropertyValue(property, value,
     return;
   }
 
-  const valueIssues = [];
+  const unsupportedBrowsers = [];
   for (const targetBrowser of targetBrowsers) {
     const support = mdnBrowserCompat.getPropertyValueState(property,
                                                            value,
                                                            targetBrowser.name,
                                                            targetBrowser.version);
     if (support === MDNBrowserCompat.STATE.UNSUPPORTED) {
-      valueIssues.push(targetBrowser);
+      unsupportedBrowsers.push(targetBrowser);
     }
   }
 
-  if (valueIssues.length) {
-    issueMap.set(property, { property, value, valueIssues, isValid: true });
+  if (unsupportedBrowsers.length) {
+    issueMap.set(property, { property, value, unsupportedBrowsers, isValid: true });
   }
 }
 

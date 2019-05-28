@@ -68,11 +68,15 @@ function createObserver(port) {
         }
       }
 
-      if (propertyIssues.length === 0 && valueIssues.length === 0) {
-        continue;
+      if (propertyIssues.length) {
+        issueList.push(
+          { property, unsupportedBrowsers: propertyIssues, isValid, ruleId });
       }
 
-      issueList.push({ property, propertyIssues, value, valueIssues, isValid, ruleId });
+      if (valueIssues.length) {
+        issueList.push(
+          { property, value, unsupportedBrowsers: valueIssues, isValid, ruleId });
+      }
     }
 
     port.postMessage({ type: "node", issueList });
