@@ -15,11 +15,31 @@
     }
 
     ul {
-      list-style: url(./images/warning.svg);
+      list-style: none;
     }
 
     li {
       margin-block-end: 4px;
+      align-items: center;
+      display: flex;
+      column-gap: 4px;
+    }
+
+    li::before {
+      content: "";
+      background-size: 100%;
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      -moz-context-properties: fill;
+    }
+
+    .invalid::before {
+      background-image: url(./images/warning.svg);
+    }
+
+    .unsupported::before {
+      background-image: url(./images/information.svg);
     }
 
     .clickable {

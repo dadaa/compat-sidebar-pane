@@ -75,6 +75,7 @@ function createPropertyValueIssueLabel(property, value, ruleId) {
 
 function renderInvalid(titleEl) {
   const liEl = document.createElement("li");
+  liEl.classList.add("invalid");
   const invalidEl = document.createElement("label");
   invalidEl.textContent = ` is invalid.`;
   liEl.appendChild(titleEl);
@@ -98,6 +99,7 @@ function renderNotSupported(titleEl, browsers) {
   }
 
   const liEl = document.createElement("li");
+  liEl.classList.add("unsupported");
   const browsersEl = document.createElement("label");
   browsersEl.textContent = ` is not supported in ${ browserText }.`;
   browsersEl.classList.add("browsers");

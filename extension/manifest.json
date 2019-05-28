@@ -33,6 +33,7 @@
     }
   },
   "web_accessible_resources": [
+    "images/error.svg",
     "images/warning.svg"
   ]
 }
