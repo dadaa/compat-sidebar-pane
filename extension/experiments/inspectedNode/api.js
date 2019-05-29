@@ -2,6 +2,10 @@
 
 this.inspectedNode = class extends ExtensionAPI {
   getAPI(context) {
+    const TYPE = {
+      DOCUMENT: "document",
+      NODE: "node",
+    };
     const { classes: Cc, interfaces: Ci, utils: utils } = Components;
     const { Services } = Cu.import("resource://gre/modules/Services.jsm");
     const { require } = Cu.import("resource://devtools/shared/Loader.jsm");
@@ -9,17 +13,9 @@ this.inspectedNode = class extends ExtensionAPI {
 
     const _observers = new Map();
 
-    const _notify = async (clientId) => {
+    const _notify = async (type, clientId) => {
       const { fire, inspector } = _observers.get(clientId);
-
-      const node = inspector.selection.nodeFront;
-      const styles = await inspector.pageStyle.getApplied(node, { skipPseudo: true });
-      const declarations = [];
-      for (const { rule } of styles) {
-        declarations.push(
-          ...rule.declarations.map(d => Object.assign(d, { ruleId: rule.actorID })));
-      }
-      fire.asyncWithoutClone(declarations);
+      fire.asyncWithoutClone(type);
     }
 
     const _observe = async (fire, clientId) => {
@@ -29,27 +25,46 @@ this.inspectedNode = class extends ExtensionAPI {
       const toolbox = gDevTools.getToolbox(target);
 
       const inspector = toolbox.getPanel("inspector");
-      const listener = () => {
-        _notify(clientId);
+      const nodeListener = () => {
+        _notify(TYPE.NODE, clientId);
       };
-      _observers.set(clientId, { fire, inspector, listener });
+      const documentListener = () => {
+        _notify(TYPE.DOCUMENT, clientId);
+      };
+      _observers.set(clientId, { fire, inspector, documentListener, nodeListener });
 
-      inspector.on("new-root", listener);
-      inspector.selection.on("new-node-front", listener);
+      inspector.on("new-root", documentListener);
+      inspector.selection.on("new-node-front", nodeListener);
 
-      _notify(clientId);
+      documentListener();
     };
 
     const _unobserve = clientId => {
-      const { inspector, listener } = _observers.get(clientId);
-      inspector.off("new-root", listener);
-      inspector.selection.off("new-node-front", listener);
+      const { inspector, documentListener, nodeListener } = _observers.get(clientId);
+      inspector.off("new-root", documentListener);
+      inspector.selection.off("new-node-front", nodeListener);
       _observers.delete(clientId);
     };
 
     return {
       experiments: {
         inspectedNode: {
+          async getStyle(clientId) {
+            const { inspector } = _observers.get(clientId);
+
+            const node = inspector.selection.nodeFront;
+            const styles =
+              await inspector.pageStyle.getApplied(node, { skipPseudo: true });
+            const declarations = [];
+            for (const { rule } of styles) {
+              const ruleId = rule.actorID;
+              declarations.push(
+                ...rule.declarations.map(d => Object.assign(d, { ruleId })));
+            }
+
+            return declarations;
+          },
+
           async highlight(ruleId, clientId) {
             const { inspector } = _observers.get(clientId);
             const { highlightElementRule } = inspector.getPanel("ruleview").view;

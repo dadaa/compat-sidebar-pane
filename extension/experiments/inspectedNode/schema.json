@@ -3,6 +3,17 @@
     "namespace": "experiments.inspectedNode",
     "functions": [
       {
+        "name": "getStyle",
+        "type": "function",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "clientId"
+          }
+        ],
+        "async": true
+      },
+      {
         "name": "highlight",
         "type": "function",
         "parameters": [
