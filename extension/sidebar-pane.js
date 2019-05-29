@@ -6,18 +6,20 @@ port.onMessage.addListener(({ type, issueList }) => {
                                     : document.querySelector(".document");
   sectionEl.innerHTML = "";
 
-  if (!issueList.length) {
-    sectionEl.textContent = "No issues";
-    return;
-  }
-
   const ulEl = document.createElement("ul");
-  for (const { property, value, unsupportedBrowsers, isValid, ruleId } of issueList) {
-    const titleEl = value ? createPropertyValueIssueLabel(property, value, ruleId)
-                          : createPropertyIssueLabel(property, ruleId);
-    const resultEl = isValid ? renderNotSupported(titleEl, unsupportedBrowsers)
-                             : renderInvalid(titleEl);
-    ulEl.appendChild(resultEl);
+
+  if (!issueList.length) {
+    const liEl = document.createElement("li");
+    liEl.textContent = "No issues";
+    ulEl.appendChild(liEl);
+  } else {
+    for (const { property, value, unsupportedBrowsers, isValid, ruleId } of issueList) {
+      const titleEl = value ? createPropertyValueIssueLabel(property, value, ruleId)
+                    : createPropertyIssueLabel(property, ruleId);
+      const resultEl = isValid ? renderNotSupported(titleEl, unsupportedBrowsers)
+                     : renderInvalid(titleEl);
+      ulEl.appendChild(resultEl);
+    }
   }
 
   sectionEl.appendChild(ulEl);
