@@ -13,11 +13,9 @@ port.onMessage.addListener(({ type, issueList }) => {
     liEl.textContent = "No issues";
     ulEl.appendChild(liEl);
   } else {
-    for (const { property, value, unsupportedBrowsers, isValid, ruleId } of issueList) {
-      const titleEl = value ? createPropertyValueIssueLabel(property, value, ruleId)
-                    : createPropertyIssueLabel(property, ruleId);
-      const resultEl = isValid ? renderNotSupported(titleEl, unsupportedBrowsers)
-                     : renderInvalid(titleEl);
+    for (const issue of issueList) {
+      const resultEl = issue.propertyAliases ? createPropertyAliasIssue(issue)
+                                             : createPropertyIssue(issue);
       ulEl.appendChild(resultEl);
     }
   }
@@ -27,6 +25,29 @@ port.onMessage.addListener(({ type, issueList }) => {
 
 function onClick({ target }) {
   port.postMessage({ ruleId: target.dataset.ruleId });
+}
+
+function createPropertyAliasIssue({ propertyAliases, unsupportedBrowsers, ruleId }) {
+  const titleEl = document.createElement("span");
+  const propertyText = propertyAliases.join(", ");
+  titleEl.appendChild(createPropertyIssueLabel(propertyText, ruleId));
+  const browsersEl = document.createElement("label");
+  const browserText = getBrowsersString(unsupportedBrowsers);
+  browsersEl.textContent = ` could not cover ${ browserText }.`;
+
+  const liEl = document.createElement("li");
+  liEl.classList.add("unsupported");
+  liEl.appendChild(titleEl);
+  liEl.appendChild(browsersEl);
+  return liEl;
+}
+
+function createPropertyIssue({ property, value, unsupportedBrowsers, isValid, ruleId }) {
+  const titleEl = value ? createPropertyValueIssueLabel(property, value, ruleId)
+                        : createPropertyIssueLabel(property, ruleId);
+  const resultEl = isValid ? renderNotSupported(titleEl, unsupportedBrowsers)
+                           : renderInvalid(titleEl);
+  return resultEl;
 }
 
 function createPropertyIssueLabel(property, ruleId) {
@@ -69,6 +90,18 @@ function renderInvalid(titleEl) {
 }
 
 function renderNotSupported(titleEl, browsers) {
+  const liEl = document.createElement("li");
+  liEl.classList.add("unsupported");
+  const browsersEl = document.createElement("label");
+  const browserText = getBrowsersString(browsers);
+  browsersEl.textContent = ` is not supported in ${ browserText }.`;
+  browsersEl.classList.add("browsers");
+  liEl.appendChild(titleEl);
+  liEl.appendChild(browsersEl);
+  return liEl;
+}
+
+function getBrowsersString(browsers) {
   const map = {};
   for (const { brandName, version } of browsers) {
     if (!map[brandName]) {
@@ -83,12 +116,5 @@ function renderNotSupported(titleEl, browsers) {
     browserText += `${ name } (${ versions.join(", ") }) `;
   }
 
-  const liEl = document.createElement("li");
-  liEl.classList.add("unsupported");
-  const browsersEl = document.createElement("label");
-  browsersEl.textContent = ` is not supported in ${ browserText }.`;
-  browsersEl.classList.add("browsers");
-  liEl.appendChild(titleEl);
-  liEl.appendChild(browsersEl);
-  return liEl;
+  return browserText;
 }

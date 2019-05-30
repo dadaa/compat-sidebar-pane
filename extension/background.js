@@ -40,51 +40,14 @@ async function getDocumentIssues() {
 }
 
 async function getNodeIssues(clientId) {
-  const declarations = await browser.experiments.inspectedNode.getStyle(clientId);
   const issueList = [];
+  const declarationBlocks = await browser.experiments.inspectedNode.getStyle(clientId);
 
-  for (const { name: property, value, isValid, isNameValid, ruleId } of declarations) {
-    if (!isValid) {
-      if (!isNameValid) {
-        issueList.push({ property, isValid, ruleId });
-      } else {
-        issueList.push({ property, value, isValid, ruleId });
-      }
-      continue;
-    }
-
-    const propertyIssues = [];
-    const valueIssues = [];
-
-    for (const targetBrowser of targetBrowsers) {
-      const propertyState = mdnBrowserCompat.getPropertyState(property,
-                                                              targetBrowser.name,
-                                                              targetBrowser.version);
-
-      if (propertyState !== MDNBrowserCompat.STATE.SUPPORTED) {
-        propertyIssues.push(targetBrowser);
-        continue;
-      }
-
-      const valueState = mdnBrowserCompat.getPropertyValueState(property,
-                                                                value,
-                                                                targetBrowser.name,
-                                                                targetBrowser.version);
-      if (valueState === MDNBrowserCompat.STATE.UNSUPPORTED) {
-        valueIssues.push(targetBrowser);
-        continue;
-        }
-    }
-
-    if (propertyIssues.length) {
-      issueList.push(
-        { property, unsupportedBrowsers: propertyIssues, isValid, ruleId });
-    }
-
-    if (valueIssues.length) {
-      issueList.push(
-        { property, value, unsupportedBrowsers: valueIssues, isValid, ruleId });
-    }
+  for (const { ruleId, declarations } of declarationBlocks) {
+    const issues =
+      mdnBrowserCompat.getDeclarationBlockIssues(declarations, targetBrowsers)
+                      .map(issue => Object.assign(issue, { ruleId }));
+    issueList.push(...issues);
   }
 
   return issueList;

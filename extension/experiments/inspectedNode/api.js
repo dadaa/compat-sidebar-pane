@@ -55,14 +55,10 @@ this.inspectedNode = class extends ExtensionAPI {
             const node = inspector.selection.nodeFront;
             const styles =
               await inspector.pageStyle.getApplied(node, { skipPseudo: true });
-            const declarations = [];
-            for (const { rule } of styles) {
-              const ruleId = rule.actorID;
-              declarations.push(
-                ...rule.declarations.map(d => Object.assign(d, { ruleId })));
-            }
-
-            return declarations;
+            return styles.map(({ rule }) => {
+              const { actorID: ruleId, declarations } = rule;
+              return { ruleId, declarations };
+            });
           },
 
           async highlight(ruleId, clientId) {
