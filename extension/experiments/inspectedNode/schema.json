@@ -19,7 +19,7 @@
         "parameters": [
           {
             "type": "string",
-            "name": "ruleId"
+            "name": "searchTerm"
           },
           {
             "type": "string",

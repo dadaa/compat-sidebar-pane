@@ -24,13 +24,18 @@ port.onMessage.addListener(({ type, issueList }) => {
 });
 
 function onClick({ target }) {
-  port.postMessage({ ruleId: target.dataset.ruleId });
+  port.postMessage({ searchTerm: target.dataset.searchTerm });
 }
 
-function createPropertyAliasIssue({ propertyAliases, unsupportedBrowsers, ruleId }) {
+function createPropertyAliasIssue({ propertyAliases, unsupportedBrowsers }) {
   const titleEl = document.createElement("span");
-  const propertyText = propertyAliases.join(", ");
-  titleEl.appendChild(createPropertyIssueLabel(propertyText, ruleId));
+
+  for (const propertyAlias of propertyAliases) {
+    const propertyAliasEl = createPropertyIssueLabel(propertyAlias);
+    propertyAliasEl.classList.add("alias");
+    titleEl.appendChild(propertyAliasEl);
+  }
+
   const browsersEl = document.createElement("label");
   const browserText = getBrowsersString(unsupportedBrowsers);
   browsersEl.textContent = ` could not cover ${ browserText }.`;
@@ -42,38 +47,34 @@ function createPropertyAliasIssue({ propertyAliases, unsupportedBrowsers, ruleId
   return liEl;
 }
 
-function createPropertyIssue({ property, value, unsupportedBrowsers, isValid, ruleId }) {
-  const titleEl = value ? createPropertyValueIssueLabel(property, value, ruleId)
-                        : createPropertyIssueLabel(property, ruleId);
+function createPropertyIssue({ property, value, unsupportedBrowsers, isValid }) {
+  const titleEl = value ? createPropertyValueIssueLabel(property, value)
+                        : createPropertyIssueLabel(property);
   const resultEl = isValid ? renderNotSupported(titleEl, unsupportedBrowsers)
                            : renderInvalid(titleEl);
   return resultEl;
 }
 
-function createPropertyIssueLabel(property, ruleId) {
+function createPropertyIssueLabel(property) {
   const propertyEl = document.createElement("label");
   propertyEl.classList.add("property");
   propertyEl.textContent = property;
-  if (ruleId) {
-    propertyEl.classList.add("clickable");
-    propertyEl.dataset.ruleId = ruleId;
-    propertyEl.addEventListener("click", onClick);
-  }
+  propertyEl.classList.add("clickable");
+  propertyEl.dataset.searchTerm = property;
+  propertyEl.addEventListener("click", onClick);
   return propertyEl;
 }
 
-function createPropertyValueIssueLabel(property, value, ruleId) {
+function createPropertyValueIssueLabel(property, value) {
   const titleEl = document.createElement("span");
   const propertyEl = document.createElement("label");
   propertyEl.textContent = `${ property }: `;
   const valueEl = document.createElement("label");
   valueEl.textContent = value;
   valueEl.classList.add("value");
-  if (ruleId) {
-    valueEl.classList.add("clickable");
-    valueEl.dataset.ruleId = ruleId;
-    valueEl.addEventListener("click", onClick);
-  }
+  valueEl.classList.add("clickable");
+  valueEl.dataset.searchTerm = `${ property }: ${ value }`;
+  valueEl.addEventListener("click", onClick);
   titleEl.appendChild(propertyEl);
   titleEl.appendChild(valueEl);
   return titleEl;

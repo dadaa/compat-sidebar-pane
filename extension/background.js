@@ -19,8 +19,8 @@ browser.runtime.onConnect.addListener(port => {
 
   browser.experiments.inspectedNode.onChange.addListener(observer, clientId);
 
-  const messageListener = ({ ruleId }) => {
-    browser.experiments.inspectedNode.highlight(ruleId, clientId);
+  const messageListener = ({ searchTerm }) => {
+    browser.experiments.inspectedNode.highlight(searchTerm, clientId);
   };
   port.onMessage.addListener(messageListener);
 

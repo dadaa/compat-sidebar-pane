@@ -61,10 +61,9 @@ this.inspectedNode = class extends ExtensionAPI {
             });
           },
 
-          async highlight(ruleId, clientId) {
+          async highlight(searchTerm, clientId) {
             const { inspector } = _observers.get(clientId);
-            const { highlightElementRule } = inspector.getPanel("ruleview").view;
-            highlightElementRule(ruleId);
+            inspector.getPanel("ruleview").view.setFilterStyles(searchTerm);
           },
 
           onChange: new ExtensionCommon.EventManager({
