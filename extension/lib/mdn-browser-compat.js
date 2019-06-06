@@ -18,7 +18,14 @@ class MDNBrowserCompat {
    */
   constructor(mdnCompatData) {
     this.mdnCompatData = mdnCompatData;
-    this._flattenProperties(this.mdnCompatData.css.properties);
+
+    // Flatten CSS property aliases.
+    this._flattenMap(this.mdnCompatData.css.properties);
+
+    // Flatten CSS value aliases.
+    for (let property in this.mdnCompatData.css.properties) {
+      this._flattenMap(this.mdnCompatData.css.properties[property]);
+    }
   }
 
   getBrowsers() {
@@ -44,7 +51,12 @@ class MDNBrowserCompat {
   }
 
   getPropertyValueState(property, value, browser, version) {
-    const propertyCompatData = this.mdnCompatData.css.properties[property];
+    let propertyCompatData = this.mdnCompatData.css.properties[property];
+
+    if (propertyCompatData._aliasOf) {
+      propertyCompatData = this.mdnCompatData.css.properties[propertyCompatData._aliasOf];
+    }
+
     try {
       const supportMap = this._getSupportMap(value, propertyCompatData);
       return this._getState(browser, version, supportMap);
@@ -203,31 +215,34 @@ class MDNBrowserCompat {
     return version === false ? Number.MAX_VALUE : parseFloat(version);
   }
 
-  _flattenProperties(propertyMap) {
+  _flattenMap(map) {
     const aliases = [];
-    for (let property in propertyMap) {
-      const compatData = propertyMap[property]
-      this._flattenProperty(aliases, property, compatData);
+    for (let key in map) {
+      if (key.includes("_")) {
+        continue;
+      }
+      const compatData = map[key]
+      this._flattenItem(aliases, key, compatData);
     }
 
     for (const { alias, aliasOf, context, runtime,
                  version_added, version_removed, flags } of aliases) {
 
-      if (!propertyMap[alias]) {
-        propertyMap[alias] = {}
+      if (!map[alias]) {
+        map[alias] = {}
       }
 
       let compatData;
       if (context) {
-        if (!propertyMap[alias][context]) {
-          propertyMap[alias][context] = {};
+        if (!map[alias][context]) {
+          map[alias][context] = {};
         }
-        compatData = propertyMap[alias][context];
+        compatData = map[alias][context];
       } else {
-        if (!propertyMap[alias]) {
-          propertyMap[alias] = {};
+        if (!map[alias]) {
+          map[alias] = {};
         }
-        compatData = propertyMap[alias];
+        compatData = map[alias];
       }
 
       if (!compatData.__compat) {
@@ -252,22 +267,23 @@ class MDNBrowserCompat {
         version_added, version_removed, flags,
       });
 
-      propertyMap[aliasOf]._aliasOf = aliasOf;
+      // Want to handle the entity property as same as alias property.
+      map[aliasOf]._aliasOf = aliasOf;
     }
   }
 
-  _flattenProperty(aliases, property, compatData, context) {
+  _flattenItem(aliases, key, compatData, context) {
     if (compatData.__compat) {
       for (let runtime in compatData.__compat.support) {
         const supportStates = compatData.__compat.support[runtime] || [];
         for (const { alternative_name, prefix, version_added, version_removed, flags }
           of Array.isArray(supportStates) ? supportStates : [supportStates]) {
-          if (!prefix && ! alternative_name) {
+          if (!prefix && !alternative_name) {
             continue;
           }
 
-          const alias = alternative_name || prefix + property;
-          aliases.push({ alias, aliasOf: property, context, runtime,
+          const alias = alternative_name || prefix + key;
+          aliases.push({ alias, aliasOf: key, context, runtime,
                          version_added, version_removed, flags });
         }
       }
@@ -277,7 +293,7 @@ class MDNBrowserCompat {
 
     for (let field in compatData) {
       if (field.endsWith("_context")) {
-        this._flattenProperty(aliases, property, compatData[field], field);
+        this._flattenItem(aliases, key, compatData[field], field);
       }
     }
   }
