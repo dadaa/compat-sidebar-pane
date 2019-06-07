@@ -57,9 +57,9 @@ this.inspectedNode = class extends ExtensionAPI {
       _observers.delete(clientId);
     };
 
-    const _setRemovable = (declarations, property, isRemovable) => {
+    const _setRemovable = (declarations, property, value, isRemovable) => {
       for (const declaration of declarations) {
-        if (declaration.name === property) {
+        if (declaration.name === property && declaration.value === value) {
           declaration.isRemovable = isRemovable;
           return;
         }
@@ -95,12 +95,12 @@ this.inspectedNode = class extends ExtensionAPI {
                 }
 
                 if (add) {
-                  for (const { property } of add) {
-                    _setRemovable(declarations, property, false);
+                  for (const { property, value } of add) {
+                    _setRemovable(declarations, property, value, false);
                   }
                 } else if (remove) {
-                  for (const { property } of remove) {
-                    _setRemovable(declarations, property, true);
+                  for (const { property, value } of remove) {
+                    _setRemovable(declarations, property, value, true);
                   }
                 }
               }

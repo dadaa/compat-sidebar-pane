@@ -14,8 +14,8 @@ port.onMessage.addListener(({ type, issueList }) => {
     ulEl.appendChild(liEl);
   } else {
     for (const issue of issueList) {
-      const resultEl = issue.propertyAliases ? createPropertyAliasIssue(issue)
-                                             : createPropertyIssue(issue);
+      const resultEl = issue.propertyAliases || issue.valueAliases
+                         ? createPropertyAliasIssue(issue) : createPropertyIssue(issue);
       ulEl.appendChild(resultEl);
     }
   }
@@ -27,13 +27,24 @@ function onClick({ target }) {
   port.postMessage({ searchTerm: target.dataset.searchTerm });
 }
 
-function createPropertyAliasIssue({ propertyAliases, unsupportedBrowsers }) {
+function createPropertyAliasIssue({ property, propertyAliases, valueAliases,
+                                    unsupportedBrowsers }) {
   const titleEl = document.createElement("span");
 
-  for (const propertyAlias of propertyAliases) {
-    const propertyAliasEl = createPropertyIssueLabel(propertyAlias);
-    propertyAliasEl.classList.add("alias");
-    titleEl.appendChild(propertyAliasEl);
+  if (propertyAliases) {
+    for (const propertyAlias of propertyAliases) {
+      const propertyAliasEl = createIssueLabel(propertyAlias, ["property", "alias"]);
+      titleEl.appendChild(propertyAliasEl);
+    }
+  } else {
+    const propertyEl = document.createElement("label");
+    propertyEl.textContent = `${ property }: `;
+    titleEl.appendChild(propertyEl);
+
+    for (const valueAlias of valueAliases) {
+      const valueAliasEl = createIssueLabel(valueAlias, ["value", "alias"]);
+      titleEl.appendChild(valueAliasEl);
+    }
   }
 
   const browsersEl = document.createElement("label");
@@ -49,32 +60,29 @@ function createPropertyAliasIssue({ propertyAliases, unsupportedBrowsers }) {
 
 function createPropertyIssue({ property, value, unsupportedBrowsers, isValid }) {
   const titleEl = value ? createPropertyValueIssueLabel(property, value)
-                        : createPropertyIssueLabel(property);
+                        : createIssueLabel(property, ["property"]);
   const resultEl = isValid ? renderNotSupported(titleEl, unsupportedBrowsers)
                            : renderInvalid(titleEl);
   return resultEl;
 }
 
-function createPropertyIssueLabel(property) {
-  const propertyEl = document.createElement("label");
-  propertyEl.classList.add("property");
-  propertyEl.textContent = property;
-  propertyEl.classList.add("clickable");
-  propertyEl.dataset.searchTerm = property;
-  propertyEl.addEventListener("click", onClick);
-  return propertyEl;
+function createIssueLabel(value, classes) {
+  const el = document.createElement("label");
+  for (const clazz of classes) {
+    el.classList.add(clazz);
+  }
+  el.textContent = value;
+  el.classList.add("clickable");
+  el.dataset.searchTerm = value;
+  el.addEventListener("click", onClick);
+  return el;
 }
 
 function createPropertyValueIssueLabel(property, value) {
   const titleEl = document.createElement("span");
   const propertyEl = document.createElement("label");
   propertyEl.textContent = `${ property }: `;
-  const valueEl = document.createElement("label");
-  valueEl.textContent = value;
-  valueEl.classList.add("value");
-  valueEl.classList.add("clickable");
-  valueEl.dataset.searchTerm = `${ property }: ${ value }`;
-  valueEl.addEventListener("click", onClick);
+  const valueEl = createIssueLabel(value, ["value"]);
   titleEl.appendChild(propertyEl);
   titleEl.appendChild(valueEl);
   return titleEl;
