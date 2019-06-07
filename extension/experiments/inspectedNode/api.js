@@ -36,14 +36,34 @@ this.inspectedNode = class extends ExtensionAPI {
       inspector.on("new-root", documentListener);
       inspector.selection.on("new-node-front", nodeListener);
 
+      const changesFront = await inspector.target.getFront("changes");
+      changesFront.on("clear-changes", nodeListener);
+      changesFront.on("remove-change", nodeListener);
+      changesFront.on("add-change", nodeListener);
+
       documentListener();
     };
 
-    const _unobserve = clientId => {
+    const _unobserve = async (clientId) => {
       const { inspector, documentListener, nodeListener } = _observers.get(clientId);
       inspector.off("new-root", documentListener);
-      inspector.selection.off("new-node-front", nodeListener);
+      inspector.selection.on("new-node-front", nodeListener);
+
+      const changesFront = await inspector.target.getFront("changes");
+      changesFront.off("clear-changes", nodeListener);
+      changesFront.off("remove-change", nodeListener);
+      changesFront.off("add-change", nodeListener);
+
       _observers.delete(clientId);
+    };
+
+    const _setRemovable = (declarations, property, isRemovable) => {
+      for (const declaration of declarations) {
+        if (declaration.name === property) {
+          declaration.isRemovable = isRemovable;
+          return;
+        }
+      }
     };
 
     return {
@@ -55,10 +75,39 @@ this.inspectedNode = class extends ExtensionAPI {
             const node = inspector.selection.nodeFront;
             const styles =
               await inspector.pageStyle.getApplied(node, { skipPseudo: true });
+
+            const changesFront = await inspector.target.getFront("changes");
+            const changes = await changesFront.allChanges();
+
             return styles.map(({ rule }) => {
-              const { actorID: ruleId, declarations } = rule;
-              return { ruleId, declarations };
-            });
+              const { actorID: ruleId } = rule;
+              let { declarations } = rule;
+
+              // Mark properties which are removable.
+              for (const { id, add, remove } of changes) {
+                if (ruleId !== id) {
+                  continue;
+                }
+
+                if (add && remove) {
+                  // Maybe update the property?
+                  continue;
+                }
+
+                if (add) {
+                  for (const { property } of add) {
+                    _setRemovable(declarations, property, false);
+                  }
+                } else if (remove) {
+                  for (const { property } of remove) {
+                    _setRemovable(declarations, property, true);
+                  }
+                }
+              }
+
+              declarations = declarations.filter(d => !d.isRemovable);
+              return declarations.length ? { ruleId, declarations } : null;
+            }).filter(rule => !!rule);
           },
 
           async highlight(searchTerm, clientId) {
