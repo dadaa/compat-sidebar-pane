@@ -4,8 +4,9 @@ const { ISSUE_TYPE } = MDNBrowserCompat;
 
 const port = browser.runtime.connect();
 port.onMessage.addListener(({ type, issueList }) => {
-  const sectionEl = type === "node" ? document.querySelector(".node")
-                                    : document.querySelector(".document");
+  const isInSelectedNode = type === "node";
+  const sectionEl = isInSelectedNode ? document.querySelector(".node")
+                                     : document.querySelector(".document");
   sectionEl.innerHTML = "";
 
   const ulEl = document.createElement("ul");
@@ -16,7 +17,7 @@ port.onMessage.addListener(({ type, issueList }) => {
     ulEl.appendChild(liEl);
   } else {
     for (const issue of issueList) {
-      ulEl.appendChild(renderIssue(issue));
+      ulEl.appendChild(renderIssue(issue, isInSelectedNode));
     }
   }
 
@@ -27,7 +28,7 @@ function onClick({ target }) {
   port.postMessage({ searchTerm: target.dataset.searchTerm });
 }
 
-function renderIssue(issue) {
+function renderIssue(issue, isInSelectedNode) {
   const liEl = document.createElement("li");
   const subjectEl = renderSubject(issue);
   const predicateEl = renderPredicate(issue);
@@ -46,6 +47,13 @@ function renderIssue(issue) {
     case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
       liEl.classList.add("information");
       break;
+    }
+  }
+
+  if (isInSelectedNode) {
+    const linkEl = renderMDNLink(issue);
+    if (linkEl) {
+      liEl.appendChild(linkEl);
     }
   }
 
@@ -135,6 +143,35 @@ function renderLabel(text) {
   const labelEl = document.createElement("label");
   labelEl.textContent = text;
   return labelEl;
+}
+
+function renderMDNLink(issue) {
+  let term = null;
+
+  switch (issue.type) {
+    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
+    case ISSUE_TYPE.VALUE_INVALID:
+    case ISSUE_TYPE.VALUE_NOT_SUPPORT:
+    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+      term = issue.property;
+      break;
+    }
+    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER: {
+      term = issue.propertyAliases[0];
+      break;
+    }
+  }
+
+  if (!term) {
+    return null;
+  }
+
+  const url = `https://developer.mozilla.org/docs/Web/CSS/${ term }`;
+  const linkEl = document.createElement("a");
+  linkEl.textContent = "Learn more";
+  linkEl.href = url;
+  linkEl.classList.add("link");
+  return linkEl;
 }
 
 function getBrowsersString(browsers) {
