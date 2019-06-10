@@ -1,13 +1,22 @@
 "use strict";
 
-const MDN_COMPAT_STATE = {
+const _MDN_COMPAT_STATE = {
   DATA_NOT_FOUND: "DATA_NOT_FOUND",
   BROWSER_NOT_FOUND: "BROWSER_NOT_FOUND",
   SUPPORTED: "SUPPORTED",
   UNSUPPORTED: "UNSUPPORTED",
 };
 
-const TYPE_MAP = {
+const _ISSUE_TYPE = {
+  PROPERTY_INVALID: "PROPERTY_INVALID",
+  PROPERTY_NOT_SUPPORT: "PROPERTY_UNSUPPORT_ALL",
+  PROPERTY_ALIASES_NOT_COVER: "PROPERTY_ALIASES_NOT_COVER",
+  VALUE_INVALID: "VALUE_INVALID",
+  VALUE_NOT_SUPPORT: "VALUE_NOT_SUPPORT",
+  VALUE_ALIASES_NOT_COVER: "VALUE_ALIASES_NOT_COVER",
+};
+
+const _TYPE_MAP = {
   "image": [
     "background-image",
     "list-style-image",
@@ -22,8 +31,12 @@ const TYPE_MAP = {
 };
 
 class MDNBrowserCompat {
-  static get STATE() {
-    return MDN_COMPAT_STATE;
+  static get COMPAT_STATE() {
+    return _MDN_COMPAT_STATE;
+  }
+
+  static get ISSUE_TYPE() {
+    return _ISSUE_TYPE;
   }
 
   /**
@@ -42,12 +55,12 @@ class MDNBrowserCompat {
     }
 
     // Flatten type.
-    for (let type in TYPE_MAP) {
+    for (let type in _TYPE_MAP) {
       const root = this.mdnCompatData.css.types[type];
       this._flattenDeeply(root, root);
 
       // Set to each properties
-      for (const property of TYPE_MAP[type]) {
+      for (const property of _TYPE_MAP[type]) {
         const compatData = this.mdnCompatData.css.properties[property];
 
         if (!compatData) {
@@ -81,7 +94,7 @@ class MDNBrowserCompat {
       const supportMap = this._getSupportMap(property, this.mdnCompatData.css.properties);
       return this._getState(browser, version, supportMap);
     } catch (_) {
-      return MDNBrowserCompat.STATE.DATA_NOT_FOUND;
+      return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
     }
   }
 
@@ -96,7 +109,7 @@ class MDNBrowserCompat {
       const supportMap = this._getSupportMap(value, propertyCompatData, true);
       return this._getState(browser, version, supportMap);
     } catch (_) {
-      return MDNBrowserCompat.STATE.DATA_NOT_FOUND;
+      return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
     }
   }
 
@@ -105,6 +118,7 @@ class MDNBrowserCompat {
    * @param browsers - [{ browser: e.g. firefox, version: e.g. 68 }, ...]
    */
   getDeclarationBlockIssues(declarations, browsers) {
+    const { COMPAT_STATE, ISSUE_TYPE } = MDNBrowserCompat;
     const issueList = [];
     let propertyAliasMap = null;
     let valueAliasMap = null;
@@ -112,9 +126,9 @@ class MDNBrowserCompat {
     for (const { name: property, value, isValid, isNameValid } of declarations) {
       if (!isValid) {
         if (!isNameValid) {
-          issueList.push({ property, isValid });
+          issueList.push({ type: ISSUE_TYPE.PROPERTY_INVALID, property });
         } else {
-          issueList.push({ property, value, isValid });
+          issueList.push({ type: ISSUE_TYPE.VALUE_INVALID, property, value });
         }
         continue;
       }
@@ -144,33 +158,40 @@ class MDNBrowserCompat {
         continue;
       }
 
-      const propertyIssues = [];
-      const valueIssues = [];
+      const propertyUnsupportedBrowsers = [];
+      const valueUnsupportedBrowsers = [];
 
       for (const browser of browsers) {
         const propertyState =
           this.getPropertyState(property, browser.name, browser.version);
 
-        if (propertyState !== MDNBrowserCompat.STATE.SUPPORTED) {
-          propertyIssues.push(browser);
+        if (propertyState !== COMPAT_STATE.SUPPORTED) {
+          propertyUnsupportedBrowsers.push(browser);
           continue;
         }
 
         const valueState =
           this.getPropertyValueState(property, value, browser.name, browser.version);
-        if (valueState === MDNBrowserCompat.STATE.UNSUPPORTED ||
-            valueState === MDNBrowserCompat.STATE.BROWSER_NOT_FOUND) {
-          valueIssues.push(browser);
+        if (valueState === COMPAT_STATE.UNSUPPORTED ||
+            valueState === COMPAT_STATE.BROWSER_NOT_FOUND) {
+          valueUnsupportedBrowsers.push(browser);
           continue;
         }
       }
 
-      if (propertyIssues.length) {
-        issueList.push({ property, unsupportedBrowsers: propertyIssues, isValid });
+      if (propertyUnsupportedBrowsers.length) {
+        issueList.push(
+          { type: ISSUE_TYPE.PROPERTY_NOT_SUPPORT,
+            property,
+            unsupportedBrowsers: propertyUnsupportedBrowsers });
       }
 
-      if (valueIssues.length) {
-        issueList.push({ property, value, unsupportedBrowsers: valueIssues, isValid });
+      if (valueUnsupportedBrowsers.length) {
+        issueList.push(
+          { type: ISSUE_TYPE.VALUE_NOT_SUPPORT,
+            property,
+            value,
+            unsupportedBrowsers: valueUnsupportedBrowsers });
       }
     }
 
@@ -179,7 +200,7 @@ class MDNBrowserCompat {
         const unsupportedBrowsers = browsers.filter(b => {
           for (const alias of aliases) {
             if (this.getPropertyState(alias, b.name, b.version) ===
-              MDNBrowserCompat.STATE.SUPPORTED) {
+              COMPAT_STATE.SUPPORTED) {
               return false;
             }
           }
@@ -188,7 +209,9 @@ class MDNBrowserCompat {
         });
 
         if (unsupportedBrowsers.length) {
-          issueList.push({ propertyAliases: aliases, unsupportedBrowsers });
+          issueList.push({ type: ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER,
+                           propertyAliases: aliases,
+                           unsupportedBrowsers });
         }
       }
     }
@@ -199,8 +222,8 @@ class MDNBrowserCompat {
         const unsupportedBrowsers = browsers.filter(b => {
           for (const alias of aliases) {
             const state = this.getPropertyValueState(property, alias, b.name, b.version);
-            if (state !== MDNBrowserCompat.STATE.UNSUPPORTED &&
-                state !== MDNBrowserCompat.STATE.BROWSER_NOT_FOUND) {
+            if (state !== COMPAT_STATE.UNSUPPORTED &&
+                state !== COMPAT_STATE.BROWSER_NOT_FOUND) {
               return false;
             }
           }
@@ -209,7 +232,10 @@ class MDNBrowserCompat {
         });
 
         if (unsupportedBrowsers.length) {
-          issueList.push({ property, valueAliases: aliases, unsupportedBrowsers });
+          issueList.push({ type: ISSUE_TYPE.VALUE_ALIASES_NOT_COVER,
+                           property,
+                           valueAliases: aliases,
+                           unsupportedBrowsers });
         }
       }
     }
@@ -235,7 +261,7 @@ class MDNBrowserCompat {
     const supportList = supportMap[browser];
 
     if (!supportList) {
-      return MDNBrowserCompat.STATE.BROWSER_NOT_FOUND;
+      return MDNBrowserCompat.COMPAT_STATE.BROWSER_NOT_FOUND;
     }
 
     version = parseFloat(version);
@@ -250,11 +276,11 @@ class MDNBrowserCompat {
       const removedVersion = this._asFloatVersion(support.version_removed);
 
       if (addedVersion <= version && version < removedVersion) {
-        return MDNBrowserCompat.STATE.SUPPORTED;
+        return MDNBrowserCompat.COMPAT_STATE.SUPPORTED;
       }
     }
 
-    return MDNBrowserCompat.STATE.UNSUPPORTED;
+    return MDNBrowserCompat.COMPAT_STATE.UNSUPPORTED;
   }
 
   _getSupportMap(target, compatDataTable, isValue) {

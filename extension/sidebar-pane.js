@@ -1,5 +1,7 @@
 "use strict";
 
+const { ISSUE_TYPE } = MDNBrowserCompat;
+
 const port = browser.runtime.connect();
 port.onMessage.addListener(({ type, issueList }) => {
   const sectionEl = type === "node" ? document.querySelector(".node")
@@ -14,9 +16,7 @@ port.onMessage.addListener(({ type, issueList }) => {
     ulEl.appendChild(liEl);
   } else {
     for (const issue of issueList) {
-      const resultEl = issue.propertyAliases || issue.valueAliases
-                         ? createPropertyAliasIssue(issue) : createPropertyIssue(issue);
-      ulEl.appendChild(resultEl);
+      ulEl.appendChild(renderIssue(issue));
     }
   }
 
@@ -27,87 +27,114 @@ function onClick({ target }) {
   port.postMessage({ searchTerm: target.dataset.searchTerm });
 }
 
-function createPropertyAliasIssue({ property, propertyAliases, valueAliases,
-                                    unsupportedBrowsers }) {
-  const titleEl = document.createElement("span");
+function renderIssue(issue) {
+  const liEl = document.createElement("li");
+  const subjectEl = renderSubject(issue);
+  const predicateEl = renderPredicate(issue);
+  liEl.appendChild(subjectEl);
+  liEl.appendChild(predicateEl);
 
-  if (propertyAliases) {
-    for (const propertyAlias of propertyAliases) {
-      const propertyAliasEl = createIssueLabel(propertyAlias, ["property", "alias"]);
-      titleEl.appendChild(propertyAliasEl);
+  switch (issue.type) {
+    case ISSUE_TYPE.PROPERTY_INVALID:
+    case ISSUE_TYPE.VALUE_INVALID: {
+      liEl.classList.add("warning");
+      break;
     }
-  } else {
-    const propertyEl = document.createElement("label");
-    propertyEl.textContent = `${ property }: `;
-    titleEl.appendChild(propertyEl);
-
-    for (const valueAlias of valueAliases) {
-      const valueAliasEl = createIssueLabel(valueAlias, ["value", "alias"]);
-      titleEl.appendChild(valueAliasEl);
+    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
+    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER:
+    case ISSUE_TYPE.VALUE_NOT_SUPPORT:
+    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+      liEl.classList.add("information");
+      break;
     }
   }
 
-  const browsersEl = document.createElement("label");
-  const browserText = getBrowsersString(unsupportedBrowsers);
-  browsersEl.textContent = ` could not cover ${ browserText }.`;
-
-  const liEl = document.createElement("li");
-  liEl.classList.add("unsupported");
-  liEl.appendChild(titleEl);
-  liEl.appendChild(browsersEl);
   return liEl;
 }
 
-function createPropertyIssue({ property, value, unsupportedBrowsers, isValid }) {
-  const titleEl = value ? createPropertyValueIssueLabel(property, value)
-                        : createIssueLabel(property, ["property"]);
-  const resultEl = isValid ? renderNotSupported(titleEl, unsupportedBrowsers)
-                           : renderInvalid(titleEl);
-  return resultEl;
-}
+function renderSubject(issue) {
+  let termsEl = null;
+  let contextEl = null;
 
-function createIssueLabel(value, classes) {
-  const el = document.createElement("label");
-  for (const clazz of classes) {
-    el.classList.add(clazz);
+  switch (issue.type) {
+    case ISSUE_TYPE.PROPERTY_INVALID:
+    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT: {
+      termsEl = renderTerms(issue.property, ["property"]);
+      break;
+    }
+    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER: {
+      termsEl = renderTerms(issue.propertyAliases, ["property", "alias"]);
+      break;
+    }
+    case ISSUE_TYPE.VALUE_INVALID:
+    case ISSUE_TYPE.VALUE_NOT_SUPPORT: {
+      contextEl = renderLabel(`${ issue.property }: `);
+      termsEl = renderTerms(issue.value, ["value"]);
+      break;
+    }
+    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+      contextEl = renderLabel(`${ issue.property }: `);
+      termsEl = renderTerms(issue.valueAliases, ["value", "alias"]);
+      break;
+    }
   }
-  el.textContent = value;
-  el.classList.add("clickable");
-  el.dataset.searchTerm = value;
-  el.addEventListener("click", onClick);
-  return el;
+
+  const subjectEl = document.createElement("span");
+  if (contextEl) {
+    subjectEl.appendChild(contextEl);
+  }
+  subjectEl.appendChild(termsEl);
+
+  return subjectEl;
 }
 
-function createPropertyValueIssueLabel(property, value) {
-  const titleEl = document.createElement("span");
-  const propertyEl = document.createElement("label");
-  propertyEl.textContent = `${ property }: `;
-  const valueEl = createIssueLabel(value, ["value"]);
-  titleEl.appendChild(propertyEl);
-  titleEl.appendChild(valueEl);
-  return titleEl;
+function renderPredicate(issue) {
+  let contentEl = null;
+
+  switch (issue.type) {
+    case ISSUE_TYPE.PROPERTY_INVALID:
+    case ISSUE_TYPE.VALUE_INVALID: {
+      contentEl = renderLabel(" is invalid.");
+      break;
+    }
+    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
+    case ISSUE_TYPE.VALUE_NOT_SUPPORT: {
+      const browserText = getBrowsersString(issue.unsupportedBrowsers);
+      contentEl = renderLabel(` is not supported in ${ browserText }.`);
+      break;
+    }
+    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER:
+    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+      const browserText = getBrowsersString(issue.unsupportedBrowsers);
+      contentEl = renderLabel(` could not cover ${ browserText }.`);
+      break;
+    }
+  }
+
+  const predicateEl = document.createElement("span");
+  predicateEl.appendChild(contentEl);
+  return predicateEl;
 }
 
-function renderInvalid(titleEl) {
-  const liEl = document.createElement("li");
-  liEl.classList.add("invalid");
-  const invalidEl = document.createElement("label");
-  invalidEl.textContent = ` is invalid.`;
-  liEl.appendChild(titleEl);
-  liEl.appendChild(invalidEl);
-  return liEl;
+function renderTerms(terms, classes) {
+  const containerEl = document.createElement("span");
+
+  for (const term of Array.isArray(terms) ? terms : [terms]) {
+    const termEl = renderLabel(term);
+    termEl.classList.add(...classes);
+    termEl.classList.add("clickable");
+    termEl.dataset.searchTerm = term;
+    termEl.addEventListener("click", onClick);
+    containerEl.appendChild(termEl);
+  }
+
+  return containerEl;
 }
 
-function renderNotSupported(titleEl, browsers) {
-  const liEl = document.createElement("li");
-  liEl.classList.add("unsupported");
-  const browsersEl = document.createElement("label");
-  const browserText = getBrowsersString(browsers);
-  browsersEl.textContent = ` is not supported in ${ browserText }.`;
-  browsersEl.classList.add("browsers");
-  liEl.appendChild(titleEl);
-  liEl.appendChild(browsersEl);
-  return liEl;
+function renderLabel(text) {
+  const labelEl = document.createElement("label");
+  labelEl.textContent = text;
+  return labelEl;
 }
 
 function getBrowsersString(browsers) {

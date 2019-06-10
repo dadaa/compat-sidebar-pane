@@ -57,7 +57,8 @@ async function _analyzeStyleSheet(styleSheet, issueMap,
         }
 
         if (!mdnBrowserCompat.hasProperty(property)) {
-          issueMap.set(property, { property, isValid: false });
+          issueMap.set(property,
+                       { type: MDNBrowserCompat.ISSUE_TYPE.PROPERTY_INVALID, property });
           continue;
         }
 
@@ -89,13 +90,16 @@ function _analyzeProperty(property, issueMap, targetBrowsers, mdnBrowserCompat) 
     const support = mdnBrowserCompat.getPropertyState(property,
                                                       targetBrowser.name,
                                                       targetBrowser.version);
-    if (support !== MDNBrowserCompat.STATE.SUPPORTED) {
+    if (support !== MDNBrowserCompat.COMPAT_STATE.SUPPORTED) {
       unsupportedBrowsers.push(targetBrowser);
     }
   }
 
   if (unsupportedBrowsers.length) {
-    issueMap.set(property, { property, unsupportedBrowsers, isValid: true });
+    issueMap.set(property,
+                 { type: MDNBrowserCompat.ISSUE_TYPE.PROPERTY_NOT_SUPPORT,
+                   property,
+                   unsupportedBrowsers });
   }
 }
 
@@ -113,13 +117,17 @@ function _analyzePropertyValue(property, value,
                                                            value,
                                                            targetBrowser.name,
                                                            targetBrowser.version);
-    if (support === MDNBrowserCompat.STATE.UNSUPPORTED) {
+    if (support === MDNBrowserCompat.COMPAT_STATE.UNSUPPORTED) {
       unsupportedBrowsers.push(targetBrowser);
     }
   }
 
   if (unsupportedBrowsers.length) {
-    issueMap.set(property, { property, value, unsupportedBrowsers, isValid: true });
+    issueMap.set(property,
+                 { type: MDNBrowserCompat.ISSUE_TYPE.VALUE_NOT_SUPPORT,
+                   property,
+                   value,
+                   unsupportedBrowsers });
   }
 }
 
