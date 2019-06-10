@@ -97,30 +97,32 @@ function renderSubject(issue) {
 }
 
 function renderPredicate(issue) {
-  let contentEl = null;
+  let contentEls = null;
 
   switch (issue.type) {
     case ISSUE_TYPE.PROPERTY_INVALID:
     case ISSUE_TYPE.VALUE_INVALID: {
-      contentEl = renderLabel(" is invalid.");
+      contentEls = [renderLabel(" is invalid.")];
       break;
     }
     case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
     case ISSUE_TYPE.VALUE_NOT_SUPPORT: {
-      const browserText = getBrowsersString(issue.unsupportedBrowsers);
-      contentEl = renderLabel(` is not supported in ${ browserText }.`);
+      contentEls = [renderLabel(" is not supported in"),
+                    renderBrowsersElement(issue.unsupportedBrowsers),
+                    renderLabel(".")]
       break;
     }
     case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER:
     case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
-      const browserText = getBrowsersString(issue.unsupportedBrowsers);
-      contentEl = renderLabel(` could not cover ${ browserText }.`);
+      contentEls = [renderLabel(" could not cover"),
+                    renderBrowsersElement(issue.unsupportedBrowsers),
+                    renderLabel(".")]
       break;
     }
   }
 
   const predicateEl = document.createElement("span");
-  predicateEl.appendChild(contentEl);
+  predicateEl.append(...contentEls);
   return predicateEl;
 }
 
@@ -174,20 +176,24 @@ function renderMDNLink(issue) {
   return linkEl;
 }
 
-function getBrowsersString(browsers) {
+function renderBrowsersElement(browsers) {
+  const browsersEl = document.createElement("span");
+
   const map = {};
-  for (const { brandName, version } of browsers) {
-    if (!map[brandName]) {
-      map[brandName] = [];
+  for (const { brandName, name, version } of browsers) {
+    if (!map[name]) {
+      map[name] = { brandName, versions: [] };
     }
-    map[brandName].push(version);
+    map[name].versions.push(version);
   }
 
-  let browserText = "";
   for (let name in map) {
-    const versions = map[name];
-    browserText += `${ name } (${ versions.join(", ") }) `;
+    const { brandName, versions } = map[name];
+    const browserEl = renderLabel(`${ brandName } (${ versions.join(", ") })`);
+    browserEl.classList.add("browser");
+    browserEl.classList.add(name);
+    browsersEl.appendChild(browserEl);
   }
 
-  return browserText;
+  return browsersEl;
 }
