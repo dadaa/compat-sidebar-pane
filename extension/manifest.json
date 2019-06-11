@@ -13,8 +13,8 @@
   ],
   "background": {
     "scripts": [
-      "all-issues.js",
       "compat-data.js",
+      "css-compatibility.js",
       "css-lexer.js",
       "css-tokenizer.js",
       "lib/mdn-browser-compat.js",

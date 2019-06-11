@@ -7,12 +7,16 @@ let currentPortNumber = 0;
 browser.runtime.onConnect.addListener(port => {
   const clientId = `client-${ currentPortNumber++ }`;
 
+  const cssCompatibility = new CSSCompatibility(clientId, mdnBrowserCompat);
+
   const observer = async (type) => {
-    const nodeIssues = await getNodeIssues(clientId);
+    const nodeIssues =
+      await cssCompatibility.getCurrentNodeIssues(targetBrowsers);
     port.postMessage({ type: "node", issueList: nodeIssues });
 
     if (type === "document") {
-      const documentIssues = await getDocumentIssues();
+      const documentIssues =
+        await cssCompatibility.getCurrentDocumentIssues(targetBrowsers);
       port.postMessage({ type: "document", issueList: documentIssues });
     }
   };
@@ -31,27 +35,6 @@ browser.runtime.onConnect.addListener(port => {
   };
   port.onDisconnect.addListener(disconnectedListener);
 });
-
-async function getDocumentIssues() {
-  const tabs = await browser.tabs.query({ currentWindow: true, active: true });
-  const currentTab = tabs[0];
-  const issueList = await getAllIssues(currentTab.id, targetBrowsers, mdnBrowserCompat);
-  return issueList;
-}
-
-async function getNodeIssues(clientId) {
-  const issueList = [];
-  const declarationBlocks = await browser.experiments.inspectedNode.getStyle(clientId);
-
-  for (const { ruleId, declarations } of declarationBlocks) {
-    const issues =
-      mdnBrowserCompat.getDeclarationBlockIssues(declarations, targetBrowsers)
-                      .map(issue => Object.assign(issue, { ruleId }));
-    issueList.push(...issues);
-  }
-
-  return issueList;
-}
 
 function getTargetBrowsers() {
   const browsers = mdnBrowserCompat.getBrowsers();
