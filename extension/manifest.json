@@ -17,6 +17,7 @@
       "css-compatibility.js",
       "css-lexer.js",
       "css-tokenizer.js",
+      "html-compatibility.js",
       "lib/mdn-browser-compat.js",
       "background.js"
     ]

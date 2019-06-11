@@ -25,7 +25,7 @@ port.onMessage.addListener(({ type, issueList }) => {
 });
 
 function onClick({ target }) {
-  port.postMessage({ searchTerm: target.dataset.searchTerm });
+  port.postMessage({ type: target.dataset.type, searchTerm: target.dataset.searchTerm });
 }
 
 function renderIssue(issue, isInSelectedNode) {
@@ -37,14 +37,16 @@ function renderIssue(issue, isInSelectedNode) {
 
   switch (issue.type) {
     case ISSUE_TYPE.PROPERTY_INVALID:
-    case ISSUE_TYPE.VALUE_INVALID: {
+    case ISSUE_TYPE.VALUE_INVALID:
+    case ISSUE_TYPE.HTML_TAG_INVALID: {
       liEl.classList.add("warning");
       break;
     }
     case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
     case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER:
     case ISSUE_TYPE.VALUE_NOT_SUPPORT:
-    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER:
+    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
       liEl.classList.add("information");
       break;
     }
@@ -61,38 +63,39 @@ function renderIssue(issue, isInSelectedNode) {
 }
 
 function renderSubject(issue) {
-  let termsEl = null;
-  let contextEl = null;
+  let termsEls = null;
 
   switch (issue.type) {
     case ISSUE_TYPE.PROPERTY_INVALID:
     case ISSUE_TYPE.PROPERTY_NOT_SUPPORT: {
-      termsEl = renderTerms(issue.property, ["property"]);
+      termsEls = [renderTerms([issue.property], ["property"])];
       break;
     }
     case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER: {
-      termsEl = renderTerms(issue.propertyAliases, ["property", "alias"]);
+      termsEls = [renderTerms(issue.propertyAliases, ["property", "alias"])];
       break;
     }
     case ISSUE_TYPE.VALUE_INVALID:
     case ISSUE_TYPE.VALUE_NOT_SUPPORT: {
-      contextEl = renderLabel(`${ issue.property }: `);
-      termsEl = renderTerms(issue.value, ["value"]);
+      termsEls = [renderLabel(`${ issue.property }: `),
+                  renderTerms([issue.value], ["value"])];
       break;
     }
     case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
-      contextEl = renderLabel(`${ issue.property }: `);
-      termsEl = renderTerms(issue.valueAliases, ["value", "alias"]);
+      termsEls = [renderLabel(`${ issue.property }: `),
+                  renderTerms(issue.valueAliases, ["value", "alias"])];
+      break;
+    }
+    case ISSUE_TYPE.HTML_TAG_INVALID:
+    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
+      termsEls =
+        [renderTerms([issue.tag.toLowerCase()], ["html-tag"], "html", t => `<${ t }>` )];
       break;
     }
   }
 
   const subjectEl = document.createElement("span");
-  if (contextEl) {
-    subjectEl.appendChild(contextEl);
-  }
-  subjectEl.appendChild(termsEl);
-
+  subjectEl.append(...termsEls);
   return subjectEl;
 }
 
@@ -101,12 +104,14 @@ function renderPredicate(issue) {
 
   switch (issue.type) {
     case ISSUE_TYPE.PROPERTY_INVALID:
-    case ISSUE_TYPE.VALUE_INVALID: {
+    case ISSUE_TYPE.VALUE_INVALID:
+    case ISSUE_TYPE.HTML_TAG_INVALID: {
       contentEls = [renderLabel(" is invalid.")];
       break;
     }
     case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
-    case ISSUE_TYPE.VALUE_NOT_SUPPORT: {
+    case ISSUE_TYPE.VALUE_NOT_SUPPORT:
+    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
       contentEls = [renderLabel(" is not supported in"),
                     renderBrowsersElement(issue.unsupportedBrowsers),
                     renderLabel(".")]
@@ -126,14 +131,15 @@ function renderPredicate(issue) {
   return predicateEl;
 }
 
-function renderTerms(terms, classes) {
+function renderTerms(terms, classes, type = "css", expression = v => v) {
   const containerEl = document.createElement("span");
 
-  for (const term of Array.isArray(terms) ? terms : [terms]) {
-    const termEl = renderLabel(term);
+  for (const term of terms) {
+    const termEl = renderLabel(expression(term));
     termEl.classList.add(...classes);
     termEl.classList.add("clickable");
     termEl.dataset.searchTerm = term;
+    termEl.dataset.type = type;
     termEl.addEventListener("click", onClick);
     containerEl.appendChild(termEl);
   }

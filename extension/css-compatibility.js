@@ -7,11 +7,11 @@ class CSSCompatibility {
   async getCurrentDocumentIssues(targetBrowsers) {
     const tabs = await browser.tabs.query({ currentWindow: true, active: true });
     const tabId = tabs[0].id;
-    await browser.tabs.executeScript(tabId, { file: "css-content-script.js",
-                                              runAt: "document_idle" });
+    const [styleSheets] =
+      await browser.tabs.executeScript(tabId, { file: "css-content-script.js",
+                                                runAt: "document_idle" });
 
     const issueMap = new Map();
-    const styleSheets = await browser.tabs.sendMessage(tabId, {});
     for (const styleSheet of styleSheets) {
       try {
         await this._analyzeStyleSheet(styleSheet, issueMap, targetBrowsers);

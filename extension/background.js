@@ -8,23 +8,32 @@ browser.runtime.onConnect.addListener(port => {
   const clientId = `client-${ currentPortNumber++ }`;
 
   const cssCompatibility = new CSSCompatibility(clientId, mdnBrowserCompat);
+  const htmlCompatibility = new HTMLCompatibility(clientId, mdnBrowserCompat);
 
   const observer = async (type) => {
-    const nodeIssues =
-      await cssCompatibility.getCurrentNodeIssues(targetBrowsers);
+    const nodeIssues = [
+      ...(await htmlCompatibility.getCurrentNodeIssues(targetBrowsers)),
+      ...(await cssCompatibility.getCurrentNodeIssues(targetBrowsers)),
+    ]
     port.postMessage({ type: "node", issueList: nodeIssues });
 
     if (type === "document") {
-      const documentIssues =
-        await cssCompatibility.getCurrentDocumentIssues(targetBrowsers);
+      const documentIssues = [
+        ...(await htmlCompatibility.getCurrentDocumentIssues(targetBrowsers)),
+        ...(await cssCompatibility.getCurrentDocumentIssues(targetBrowsers)),
+      ]
       port.postMessage({ type: "document", issueList: documentIssues });
     }
   };
 
   browser.experiments.inspectedNode.onChange.addListener(observer, clientId);
 
-  const messageListener = ({ searchTerm }) => {
-    browser.experiments.inspectedNode.highlight(searchTerm, clientId);
+  const messageListener = ({ type, searchTerm }) => {
+    if (type === "css") {
+      browser.experiments.inspectedNode.highlightCSS(searchTerm, clientId);
+    } else {
+      browser.experiments.inspectedNode.highlightHTML(searchTerm, clientId);
+    }
   };
   port.onMessage.addListener(messageListener);
 

@@ -110,9 +110,21 @@ this.inspectedNode = class extends ExtensionAPI {
             }).filter(rule => !!rule);
           },
 
-          async highlight(searchTerm, clientId) {
+          async getTag(clientId) {
+            const { inspector } = _observers.get(clientId);
+            const node = inspector.selection.nodeFront;
+            return node.tagName;
+          },
+
+          async highlightCSS(searchTerm, clientId) {
             const { inspector } = _observers.get(clientId);
             inspector.getPanel("ruleview").view.setFilterStyles(searchTerm);
+          },
+
+          async highlightHTML(searchTerm, clientId) {
+            const { inspector } = _observers.get(clientId);
+            inspector.searchBox.value = searchTerm;
+            inspector.search.doFullTextSearch(searchTerm, false);
           },
 
           onChange: new ExtensionCommon.EventManager({

@@ -14,7 +14,33 @@
         "async": true
       },
       {
-        "name": "highlight",
+        "name": "getTag",
+        "type": "function",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "clientId"
+          }
+        ],
+        "async": true
+      },
+      {
+        "name": "highlightCSS",
+        "type": "function",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "searchTerm"
+          },
+          {
+            "type": "string",
+            "name": "clientId"
+          }
+        ],
+        "async": true
+      },
+      {
+        "name": "highlightHTML",
         "type": "function",
         "parameters": [
           {

@@ -6,7 +6,8 @@ const path = require("path")
 
 const payload = {
   browsers: compatData.browsers,
-  css: compatData.css
+  css: compatData.css,
+  html: compatData.html
 }
 
 const content =

@@ -9,8 +9,10 @@ const _MDN_COMPAT_STATE = {
 
 const _ISSUE_TYPE = {
   PROPERTY_INVALID: "PROPERTY_INVALID",
-  PROPERTY_NOT_SUPPORT: "PROPERTY_UNSUPPORT_ALL",
+  PROPERTY_NOT_SUPPORT: "PROPERTY_NOT_SUPPORT",
   PROPERTY_ALIASES_NOT_COVER: "PROPERTY_ALIASES_NOT_COVER",
+  HTML_TAG_INVALID: "HTML_TAG_INVALID",
+  HTML_TAG_NOT_SUPPORT: "HTML_TAG_NOT_SUPPORT",
   VALUE_INVALID: "VALUE_INVALID",
   VALUE_NOT_SUPPORT: "VALUE_NOT_SUPPORT",
   VALUE_ALIASES_NOT_COVER: "VALUE_ALIASES_NOT_COVER",
@@ -89,6 +91,15 @@ class MDNBrowserCompat {
     }
   }
 
+  hasHTMLTag(tag) {
+    try {
+      this._getSupportMap(tag, this.mdnCompatData.html.elements);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   getPropertyState(property, browser, version) {
     try {
       const supportMap = this._getSupportMap(property, this.mdnCompatData.css.properties);
@@ -107,6 +118,15 @@ class MDNBrowserCompat {
 
     try {
       const supportMap = this._getSupportMap(value, propertyCompatData, true);
+      return this._getState(browser, version, supportMap);
+    } catch (_) {
+      return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
+    }
+  }
+
+  getHTMLTagState(tag, browser, version) {
+    try {
+      const supportMap = this._getSupportMap(tag, this.mdnCompatData.html.elements);
       return this._getState(browser, version, supportMap);
     } catch (_) {
       return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
@@ -243,6 +263,30 @@ class MDNBrowserCompat {
     return issueList;
   }
 
+  getHTMLTagIssues(tags, browsers) {
+    const { COMPAT_STATE, ISSUE_TYPE } = MDNBrowserCompat;
+    const issueList = [];
+
+    for (const tag of tags) {
+      if (!this.hasHTMLTag(tag)) {
+        issueList.push({ type: ISSUE_TYPE.HTML_TAG_INVALID, tag });
+        continue;
+      }
+
+      const unsupportedBrowsers = browsers.filter(b => {
+        const state = this.getHTMLTagState(tag, b.name, b.version);
+        return state !== COMPAT_STATE.SUPPORTED;
+      });
+
+      if (unsupportedBrowsers.length) {
+        issueList.push(
+          { type: ISSUE_TYPE.HTML_TAG_NOT_SUPPORT, tag, unsupportedBrowsers });
+      }
+    }
+
+    return issueList;
+  }
+
   _getPropertyAlias(property) {
     const propertyCompatData = this.mdnCompatData.css.properties[property];
     return propertyCompatData._aliasOf;
@@ -284,6 +328,8 @@ class MDNBrowserCompat {
   }
 
   _getSupportMap(target, compatDataTable, isValue) {
+    target = target.toLowerCase();
+
     let compatData = compatDataTable[target];
 
     if (!compatData && isValue) {
