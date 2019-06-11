@@ -36,16 +36,16 @@ function renderIssue(issue, isInSelectedNode) {
   liEl.appendChild(predicateEl);
 
   switch (issue.type) {
-    case ISSUE_TYPE.PROPERTY_INVALID:
-    case ISSUE_TYPE.VALUE_INVALID:
+    case ISSUE_TYPE.CSS_PROPERTY_INVALID:
+    case ISSUE_TYPE.CSS_VALUE_INVALID:
     case ISSUE_TYPE.HTML_TAG_INVALID: {
       liEl.classList.add("warning");
       break;
     }
-    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
-    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER:
-    case ISSUE_TYPE.VALUE_NOT_SUPPORT:
-    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER:
+    case ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT:
+    case ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER:
+    case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
+    case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER:
     case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
       liEl.classList.add("information");
       break;
@@ -66,22 +66,22 @@ function renderSubject(issue) {
   let termsEls = null;
 
   switch (issue.type) {
-    case ISSUE_TYPE.PROPERTY_INVALID:
-    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT: {
+    case ISSUE_TYPE.CSS_PROPERTY_INVALID:
+    case ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT: {
       termsEls = [renderTerms([issue.property], ["property"])];
       break;
     }
-    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER: {
+    case ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER: {
       termsEls = [renderTerms(issue.propertyAliases, ["property", "alias"])];
       break;
     }
-    case ISSUE_TYPE.VALUE_INVALID:
-    case ISSUE_TYPE.VALUE_NOT_SUPPORT: {
+    case ISSUE_TYPE.CSS_VALUE_INVALID:
+    case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT: {
       termsEls = [renderLabel(`${ issue.property }: `),
                   renderTerms([issue.value], ["value"])];
       break;
     }
-    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+    case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER: {
       termsEls = [renderLabel(`${ issue.property }: `),
                   renderTerms(issue.valueAliases, ["value", "alias"])];
       break;
@@ -103,22 +103,22 @@ function renderPredicate(issue) {
   let contentEls = null;
 
   switch (issue.type) {
-    case ISSUE_TYPE.PROPERTY_INVALID:
-    case ISSUE_TYPE.VALUE_INVALID:
+    case ISSUE_TYPE.CSS_PROPERTY_INVALID:
+    case ISSUE_TYPE.CSS_VALUE_INVALID:
     case ISSUE_TYPE.HTML_TAG_INVALID: {
       contentEls = [renderLabel(" is invalid.")];
       break;
     }
-    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
-    case ISSUE_TYPE.VALUE_NOT_SUPPORT:
+    case ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT:
+    case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
     case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
       contentEls = [renderLabel(" is not supported in"),
                     renderBrowsersElement(issue.unsupportedBrowsers),
                     renderLabel(".")]
       break;
     }
-    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER:
-    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+    case ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER:
+    case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER: {
       contentEls = [renderLabel(" could not cover"),
                     renderBrowsersElement(issue.unsupportedBrowsers),
                     renderLabel(".")]
@@ -157,14 +157,14 @@ function renderMDNLink(issue) {
   let term = null;
 
   switch (issue.type) {
-    case ISSUE_TYPE.PROPERTY_NOT_SUPPORT:
-    case ISSUE_TYPE.VALUE_INVALID:
-    case ISSUE_TYPE.VALUE_NOT_SUPPORT:
-    case ISSUE_TYPE.VALUE_ALIASES_NOT_COVER: {
+    case ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT:
+    case ISSUE_TYPE.CSS_VALUE_INVALID:
+    case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
+    case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER: {
       term = issue.property;
       break;
     }
-    case ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER: {
+    case ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER: {
       term = issue.propertyAliases[0];
       break;
     }

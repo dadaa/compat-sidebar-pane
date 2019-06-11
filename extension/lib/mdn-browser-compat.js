@@ -8,14 +8,14 @@ const _MDN_COMPAT_STATE = {
 };
 
 const _ISSUE_TYPE = {
-  PROPERTY_INVALID: "PROPERTY_INVALID",
-  PROPERTY_NOT_SUPPORT: "PROPERTY_NOT_SUPPORT",
-  PROPERTY_ALIASES_NOT_COVER: "PROPERTY_ALIASES_NOT_COVER",
+  CSS_PROPERTY_INVALID: "CSS_PROPERTY_INVALID",
+  CSS_PROPERTY_NOT_SUPPORT: "CSS_PROPERTY_NOT_SUPPORT",
+  CSS_PROPERTY_ALIASES_NOT_COVER: "CSS_PROPERTY_ALIASES_NOT_COVER",
+  CSS_VALUE_INVALID: "CSS_VALUE_INVALID",
+  CSS_VALUE_NOT_SUPPORT: "CSS_VALUE_NOT_SUPPORT",
+  CSS_VALUE_ALIASES_NOT_COVER: "CSS_VALUE_ALIASES_NOT_COVER",
   HTML_TAG_INVALID: "HTML_TAG_INVALID",
   HTML_TAG_NOT_SUPPORT: "HTML_TAG_NOT_SUPPORT",
-  VALUE_INVALID: "VALUE_INVALID",
-  VALUE_NOT_SUPPORT: "VALUE_NOT_SUPPORT",
-  VALUE_ALIASES_NOT_COVER: "VALUE_ALIASES_NOT_COVER",
 };
 
 const _TYPE_MAP = {
@@ -82,7 +82,7 @@ class MDNBrowserCompat {
     return this.mdnCompatData.browsers;
   }
 
-  hasProperty(property) {
+  hasCSSProperty(property) {
     try {
       this._getSupportMap(property, this.mdnCompatData.css.properties);
       return true;
@@ -100,7 +100,7 @@ class MDNBrowserCompat {
     }
   }
 
-  getPropertyState(property, browser, version) {
+  getCSSPropertyState(property, browser, version) {
     try {
       const supportMap = this._getSupportMap(property, this.mdnCompatData.css.properties);
       return this._getState(browser, version, supportMap);
@@ -109,7 +109,7 @@ class MDNBrowserCompat {
     }
   }
 
-  getPropertyValueState(property, value, browser, version) {
+  getCSSValueState(property, value, browser, version) {
     let propertyCompatData = this.mdnCompatData.css.properties[property];
 
     if (propertyCompatData._aliasOf) {
@@ -146,14 +146,14 @@ class MDNBrowserCompat {
     for (const { name: property, value, isValid, isNameValid } of declarations) {
       if (!isValid) {
         if (!isNameValid) {
-          issueList.push({ type: ISSUE_TYPE.PROPERTY_INVALID, property });
+          issueList.push({ type: ISSUE_TYPE.CSS_PROPERTY_INVALID, property });
         } else {
-          issueList.push({ type: ISSUE_TYPE.VALUE_INVALID, property, value });
+          issueList.push({ type: ISSUE_TYPE.CSS_VALUE_INVALID, property, value });
         }
         continue;
       }
 
-      const propertyAlias = this._getPropertyAlias(property);
+      const propertyAlias = this._getCSSPropertyAlias(property);
       if (propertyAlias) {
         if (!propertyAliasMap) {
           propertyAliasMap = new Map();
@@ -165,7 +165,7 @@ class MDNBrowserCompat {
         continue;
       }
 
-      const valueAlias = this._getPropertyValueAlias(property, value);
+      const valueAlias = this._getCSSValueAlias(property, value);
       if (valueAlias) {
         if (!valueAliasMap) {
           valueAliasMap = new Map();
@@ -183,7 +183,7 @@ class MDNBrowserCompat {
 
       for (const browser of browsers) {
         const propertyState =
-          this.getPropertyState(property, browser.name, browser.version);
+          this.getCSSPropertyState(property, browser.name, browser.version);
 
         if (propertyState !== COMPAT_STATE.SUPPORTED) {
           propertyUnsupportedBrowsers.push(browser);
@@ -191,7 +191,7 @@ class MDNBrowserCompat {
         }
 
         const valueState =
-          this.getPropertyValueState(property, value, browser.name, browser.version);
+          this.getCSSValueState(property, value, browser.name, browser.version);
         if (valueState === COMPAT_STATE.UNSUPPORTED ||
             valueState === COMPAT_STATE.BROWSER_NOT_FOUND) {
           valueUnsupportedBrowsers.push(browser);
@@ -201,14 +201,14 @@ class MDNBrowserCompat {
 
       if (propertyUnsupportedBrowsers.length) {
         issueList.push(
-          { type: ISSUE_TYPE.PROPERTY_NOT_SUPPORT,
+          { type: ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT,
             property,
             unsupportedBrowsers: propertyUnsupportedBrowsers });
       }
 
       if (valueUnsupportedBrowsers.length) {
         issueList.push(
-          { type: ISSUE_TYPE.VALUE_NOT_SUPPORT,
+          { type: ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT,
             property,
             value,
             unsupportedBrowsers: valueUnsupportedBrowsers });
@@ -219,7 +219,7 @@ class MDNBrowserCompat {
       for (const [property, aliases] of propertyAliasMap.entries()) {
         const unsupportedBrowsers = browsers.filter(b => {
           for (const alias of aliases) {
-            if (this.getPropertyState(alias, b.name, b.version) ===
+            if (this.getCSSPropertyState(alias, b.name, b.version) ===
               COMPAT_STATE.SUPPORTED) {
               return false;
             }
@@ -229,7 +229,7 @@ class MDNBrowserCompat {
         });
 
         if (unsupportedBrowsers.length) {
-          issueList.push({ type: ISSUE_TYPE.PROPERTY_ALIASES_NOT_COVER,
+          issueList.push({ type: ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER,
                            propertyAliases: aliases,
                            unsupportedBrowsers });
         }
@@ -241,7 +241,7 @@ class MDNBrowserCompat {
         const property = propertyAndValue.split(":")[0];
         const unsupportedBrowsers = browsers.filter(b => {
           for (const alias of aliases) {
-            const state = this.getPropertyValueState(property, alias, b.name, b.version);
+            const state = this.getCSSValueState(property, alias, b.name, b.version);
             if (state !== COMPAT_STATE.UNSUPPORTED &&
                 state !== COMPAT_STATE.BROWSER_NOT_FOUND) {
               return false;
@@ -252,7 +252,7 @@ class MDNBrowserCompat {
         });
 
         if (unsupportedBrowsers.length) {
-          issueList.push({ type: ISSUE_TYPE.VALUE_ALIASES_NOT_COVER,
+          issueList.push({ type: ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER,
                            property,
                            valueAliases: aliases,
                            unsupportedBrowsers });
@@ -287,12 +287,12 @@ class MDNBrowserCompat {
     return issueList;
   }
 
-  _getPropertyAlias(property) {
+  _getCSSPropertyAlias(property) {
     const propertyCompatData = this.mdnCompatData.css.properties[property];
     return propertyCompatData._aliasOf;
   }
 
-  _getPropertyValueAlias(property, value) {
+  _getCSSValueAlias(property, value) {
     const compatData = this.mdnCompatData.css.properties[property];
     for (let key in compatData) {
       if (value.startsWith(key)) {
