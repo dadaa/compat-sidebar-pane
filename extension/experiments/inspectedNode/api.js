@@ -110,7 +110,7 @@ this.inspectedNode = class extends ExtensionAPI {
             }).filter(rule => !!rule);
           },
 
-          async getTag(clientId) {
+          async getElement(clientId) {
             const { inspector } = _observers.get(clientId);
             const node = inspector.selection.nodeFront;
             return node.tagName;

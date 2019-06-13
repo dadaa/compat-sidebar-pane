@@ -14,7 +14,7 @@
         "async": true
       },
       {
-        "name": "getTag",
+        "name": "getElement",
         "type": "function",
         "parameters": [
           {

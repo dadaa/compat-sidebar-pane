@@ -7,14 +7,16 @@ class HTMLCompatibility {
   async getCurrentDocumentIssues(targetBrowsers) {
     const tabs = await browser.tabs.query({ currentWindow: true, active: true });
     const tabId = tabs[0].id;
-    const [tags] =
+    const [elements] =
       await browser.tabs.executeScript(tabId, { file: "html-content-script.js",
                                                 runAt: "document_idle" });
-    return await mdnBrowserCompat.getHTMLTagIssues(tags, targetBrowsers);
+    return await mdnBrowserCompat.getHTMLElementIssues(elements, targetBrowsers);
   }
 
   async getCurrentNodeIssues(targetBrowsers) {
-    const tag = await browser.experiments.inspectedNode.getTag(this._clientId);
-    return tag ? await mdnBrowserCompat.getHTMLTagIssues([tag], targetBrowsers) : [];
+    const element = await browser.experiments.inspectedNode.getElement(this._clientId);
+    return element
+             ? await mdnBrowserCompat.getHTMLElementIssues([element], targetBrowsers)
+             : [];
   }
 }

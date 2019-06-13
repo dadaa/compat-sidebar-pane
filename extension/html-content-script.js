@@ -1,10 +1,10 @@
 "use strict";
 
-const tags = new Set();
+const elements = new Set();
 
 (function scan(node) {
   if (node.tagName) {
-    tags.add(node.tagName);
+    elements.add(node.tagName);
   }
 
   const children = node.childNodes;
@@ -13,4 +13,4 @@ const tags = new Set();
   }
 })(document.documentElement);
 
-[...tags.values()];
+[...elements.values()];

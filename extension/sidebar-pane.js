@@ -38,7 +38,7 @@ function renderIssue(issue, isInSelectedNode) {
   switch (issue.type) {
     case ISSUE_TYPE.CSS_PROPERTY_INVALID:
     case ISSUE_TYPE.CSS_VALUE_INVALID:
-    case ISSUE_TYPE.HTML_TAG_INVALID: {
+    case ISSUE_TYPE.HTML_ELEMENT_INVALID: {
       liEl.classList.add("warning");
       break;
     }
@@ -46,7 +46,7 @@ function renderIssue(issue, isInSelectedNode) {
     case ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER:
     case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
     case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER:
-    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
+    case ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT: {
       liEl.classList.add("information");
       break;
     }
@@ -86,10 +86,11 @@ function renderSubject(issue) {
                   renderTerms(issue.valueAliases, ["value", "alias"])];
       break;
     }
-    case ISSUE_TYPE.HTML_TAG_INVALID:
-    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
-      termsEls =
-        [renderTerms([issue.tag.toLowerCase()], ["html-tag"], "html", t => `<${ t }>` )];
+    case ISSUE_TYPE.HTML_ELEMENT_INVALID:
+    case ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT: {
+      termsEls = [renderTerms([issue.element.toLowerCase()],
+                              ["html-element"],
+                              "html", t => `<${ t }>` )];
       break;
     }
   }
@@ -105,13 +106,13 @@ function renderPredicate(issue) {
   switch (issue.type) {
     case ISSUE_TYPE.CSS_PROPERTY_INVALID:
     case ISSUE_TYPE.CSS_VALUE_INVALID:
-    case ISSUE_TYPE.HTML_TAG_INVALID: {
+    case ISSUE_TYPE.HTML_ELEMENT_INVALID: {
       contentEls = [renderLabel(" is invalid.")];
       break;
     }
     case ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT:
     case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
-    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
+    case ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT: {
       contentEls = [renderLabel(" is not supported in"),
                     renderBrowsersElement(issue.unsupportedBrowsers),
                     renderLabel(".")]
@@ -171,8 +172,8 @@ function renderMDNLink(issue) {
       url = CSS_URL + issue.propertyAliases[0];
       break;
     }
-    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
-      url = HTML_URL + issue.tag;
+    case ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT: {
+      url = HTML_URL + issue.element;
       break;
     }
   }

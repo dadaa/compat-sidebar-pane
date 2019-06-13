@@ -14,8 +14,8 @@ const _ISSUE_TYPE = {
   CSS_VALUE_INVALID: "CSS_VALUE_INVALID",
   CSS_VALUE_NOT_SUPPORT: "CSS_VALUE_NOT_SUPPORT",
   CSS_VALUE_ALIASES_NOT_COVER: "CSS_VALUE_ALIASES_NOT_COVER",
-  HTML_TAG_INVALID: "HTML_TAG_INVALID",
-  HTML_TAG_NOT_SUPPORT: "HTML_TAG_NOT_SUPPORT",
+  HTML_ELEMENT_INVALID: "HTML_ELEMENT_INVALID",
+  HTML_ELEMENT_NOT_SUPPORT: "HTML_ELEMENT_NOT_SUPPORT",
 };
 
 const _TYPE_MAP = {
@@ -91,9 +91,9 @@ class MDNBrowserCompat {
     }
   }
 
-  hasHTMLTag(tag) {
+  hasHTMLElement(element) {
     try {
-      this._getSupportMap(tag, this.mdnCompatData.html.elements);
+      this._getSupportMap(element, this.mdnCompatData.html.elements);
       return true;
     } catch (_) {
       return false;
@@ -124,9 +124,9 @@ class MDNBrowserCompat {
     }
   }
 
-  getHTMLTagState(tag, browser, version) {
+  getHTMLElementState(element, browser, version) {
     try {
-      const supportMap = this._getSupportMap(tag, this.mdnCompatData.html.elements);
+      const supportMap = this._getSupportMap(element, this.mdnCompatData.html.elements);
       return this._getState(browser, version, supportMap);
     } catch (_) {
       return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
@@ -263,24 +263,24 @@ class MDNBrowserCompat {
     return issueList;
   }
 
-  getHTMLTagIssues(tags, browsers) {
+  getHTMLElementIssues(elements, browsers) {
     const { COMPAT_STATE, ISSUE_TYPE } = MDNBrowserCompat;
     const issueList = [];
 
-    for (const tag of tags) {
-      if (!this.hasHTMLTag(tag)) {
-        issueList.push({ type: ISSUE_TYPE.HTML_TAG_INVALID, tag });
+    for (const element of elements) {
+      if (!this.hasHTMLElement(element)) {
+        issueList.push({ type: ISSUE_TYPE.HTML_ELEMENT_INVALID, element });
         continue;
       }
 
       const unsupportedBrowsers = browsers.filter(b => {
-        const state = this.getHTMLTagState(tag, b.name, b.version);
+        const state = this.getHTMLElementState(element, b.name, b.version);
         return state !== COMPAT_STATE.SUPPORTED;
       });
 
       if (unsupportedBrowsers.length) {
         issueList.push(
-          { type: ISSUE_TYPE.HTML_TAG_NOT_SUPPORT, tag, unsupportedBrowsers });
+          { type: ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT, element, unsupportedBrowsers });
       }
     }
 
