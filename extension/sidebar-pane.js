@@ -154,27 +154,33 @@ function renderLabel(text) {
 }
 
 function renderMDNLink(issue) {
-  let term = null;
+  const CSS_URL = "https://developer.mozilla.org/docs/Web/CSS/";
+  const HTML_URL = "https://developer.mozilla.org/docs/Web/HTML/Element/";
+
+  let url = null;
 
   switch (issue.type) {
     case ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT:
     case ISSUE_TYPE.CSS_VALUE_INVALID:
     case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
     case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER: {
-      term = issue.property;
+      url = CSS_URL + issue.property;
       break;
     }
     case ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER: {
-      term = issue.propertyAliases[0];
+      url = CSS_URL + issue.propertyAliases[0];
+      break;
+    }
+    case ISSUE_TYPE.HTML_TAG_NOT_SUPPORT: {
+      url = HTML_URL + issue.tag;
       break;
     }
   }
 
-  if (!term) {
+  if (!url) {
     return null;
   }
 
-  const url = `https://developer.mozilla.org/docs/Web/CSS/${ term }`;
   const linkEl = document.createElement("a");
   linkEl.textContent = "Learn more";
   linkEl.href = url;
