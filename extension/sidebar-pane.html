@@ -104,6 +104,23 @@
     .browser.edge_mobile {
       color: #385884;
     }
+
+    .browser .versions::after {
+      content: ")";
+    }
+
+    .browser .versions::before {
+      content: "(";
+    }
+
+    .browser .versions .version:not(:last-child)::after {
+      content: ", ";
+    }
+
+    .browser .versions .version.launchable {
+      cursor: pointer;
+      font-weight: 800;
+    }
     </style>
     <script src="lib/mdn-browser-compat.js"></script>
     <script src="sidebar-pane.js"></script>

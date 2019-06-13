@@ -9,7 +9,9 @@
     }
   },
   "permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "nativeMessaging",
+    "storage"
   ],
   "background": {
     "scripts": [
@@ -24,6 +26,14 @@
   },
   "devtools_page": "devtools.html",
   "experiment_apis": {
+    "filePicker": {
+      "schema": "experiments/filePicker/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "experiments/filePicker/api.js",
+        "paths": [["experiments", "filePicker"]]
+      }
+    },
     "inspectedNode": {
       "schema": "experiments/inspectedNode/schema.json",
       "parent": {
@@ -32,6 +42,9 @@
         "paths": [["experiments", "inspectedNode"]]
       }
     }
+  },
+  "options_ui": {
+    "page": "options.html"
   },
   "web_accessible_resources": [
     "images/error.svg",

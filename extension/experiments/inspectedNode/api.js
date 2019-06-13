@@ -15,7 +15,8 @@ this.inspectedNode = class extends ExtensionAPI {
 
     const _notify = async (type, clientId) => {
       const { fire, inspector } = _observers.get(clientId);
-      fire.asyncWithoutClone(type);
+      const url = inspector.target.targetForm.url;
+      fire.asyncWithoutClone(type, url);
     }
 
     const _observe = async (fire, clientId) => {

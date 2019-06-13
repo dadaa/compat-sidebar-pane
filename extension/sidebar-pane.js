@@ -2,8 +2,15 @@
 
 const { ISSUE_TYPE } = MDNBrowserCompat;
 
+let _targetRuntimes;
+let _url;
+
 const port = browser.runtime.connect();
-port.onMessage.addListener(({ type, issueList }) => {
+port.onMessage.addListener(async ({ url, type, issueList }) => {
+  const { targetRuntimes } = await browser.storage.local.get("targetRuntimes");
+  _targetRuntimes = targetRuntimes;
+  _url = url;
+
   const isInSelectedNode = type === "node";
   const sectionEl = isInSelectedNode ? document.querySelector(".node")
                                      : document.querySelector(".document");
@@ -25,7 +32,13 @@ port.onMessage.addListener(({ type, issueList }) => {
 });
 
 function onClick({ target }) {
-  port.postMessage({ type: target.dataset.type, searchTerm: target.dataset.searchTerm });
+  const { type, searchTerm } = target.dataset;
+  port.postMessage({ method: "highlight", type, searchTerm });
+}
+
+function onClickLauncher({ target }) {
+  const path = target.dataset.path;
+  port.postMessage({ method: "launch", path, url: _url });
 }
 
 function renderIssue(issue, isInSelectedNode) {
@@ -202,11 +215,45 @@ function renderBrowsersElement(browsers) {
 
   for (let name in map) {
     const { brandName, versions } = map[name];
-    const browserEl = renderLabel(`${ brandName } (${ versions.join(", ") })`);
+    const browserEl = renderLabel(brandName);
     browserEl.classList.add("browser");
     browserEl.classList.add(name);
+
+    const versionsEl = document.createElement("span");
+    versionsEl.classList.add("versions");
+
+    for (const version of versions) {
+      const versionEl = renderLabel(version);
+      versionEl.classList.add("version");
+
+      const path = getBrowserApplicationPath(name, version);
+      if (path) {
+        versionEl.classList.add("launchable");
+        versionEl.dataset.path = path;
+        versionEl.dataset.path = path;
+        versionEl.addEventListener("click", onClickLauncher);
+      }
+
+      versionsEl.appendChild(versionEl);
+    }
+
+    browserEl.appendChild(versionsEl);
     browsersEl.appendChild(browserEl);
   }
 
   return browsersEl;
+}
+
+function getBrowserApplicationPath(name, version) {
+  if (!_targetRuntimes) {
+    return null;
+  }
+
+  for (const targetRuntime of _targetRuntimes) {
+    if (targetRuntime.name === name && targetRuntime.version === version) {
+      return targetRuntime.path || null;
+    }
+  }
+
+  return null;
 }

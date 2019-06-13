@@ -1,0 +1,7 @@
+{
+  "name": "compat_sidebar_pane_launcher",
+  "description": "launch browser user wants",
+  "path": "/path/to/launcher.py",
+  "type": "stdio",
+  "allowed_extensions": [ "compat-sidebar-pane@firefox-dev.tools" ]
+}
