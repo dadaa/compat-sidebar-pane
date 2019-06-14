@@ -77,7 +77,8 @@ class CSSCompatibility {
             continue;
           }
 
-          if (!this._mdnBrowserCompat.hasCSSProperty(property)) {
+          if (!this._mdnBrowserCompat.hasTerm(MDNBrowserCompat.DATA_TYPE.CSS_PROPERTY,
+                                              property)) {
             issueMap.set(property,
                          { type: MDNBrowserCompat.ISSUE_TYPE.CSS_PROPERTY_INVALID,
                            property });
@@ -108,9 +109,12 @@ class CSSCompatibility {
 
     const unsupportedBrowsers = [];
     for (const targetBrowser of targetBrowsers) {
-      const support = this._mdnBrowserCompat.getCSSPropertyState(property,
-                                                                 targetBrowser.name,
-                                                                 targetBrowser.version);
+      const support =
+        this._mdnBrowserCompat.getSupportState(targetBrowser.name,
+                                               targetBrowser.version,
+                                               MDNBrowserCompat.DATA_TYPE.CSS_PROPERTY,
+                                               property);
+
       if (support !== MDNBrowserCompat.COMPAT_STATE.SUPPORTED) {
         unsupportedBrowsers.push(targetBrowser);
       }
@@ -133,10 +137,13 @@ class CSSCompatibility {
 
     const unsupportedBrowsers = [];
     for (const targetBrowser of targetBrowsers) {
-      const support = this._mdnBrowserCompat.getCSSValueState(property,
-                                                              value,
-                                                              targetBrowser.name,
-                                                              targetBrowser.version);
+      const support =
+        this._mdnBrowserCompat.getSupportState(targetBrowser.name,
+                                               targetBrowser.version,
+                                               MDNBrowserCompat.DATA_TYPE.CSS_PROPERTY,
+                                               property,
+                                               value);
+
       if (support === MDNBrowserCompat.COMPAT_STATE.UNSUPPORTED) {
         unsupportedBrowsers.push(targetBrowser);
       }

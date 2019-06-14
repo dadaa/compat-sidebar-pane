@@ -1,8 +1,8 @@
 "use strict";
 
-const _MDN_COMPAT_STATE = {
-  DATA_NOT_FOUND: "DATA_NOT_FOUND",
+const _COMPAT_STATE = {
   BROWSER_NOT_FOUND: "BROWSER_NOT_FOUND",
+  DATA_NOT_FOUND: "DATA_NOT_FOUND",
   SUPPORTED: "SUPPORTED",
   UNSUPPORTED: "UNSUPPORTED",
 };
@@ -16,6 +16,11 @@ const _ISSUE_TYPE = {
   CSS_VALUE_ALIASES_NOT_COVER: "CSS_VALUE_ALIASES_NOT_COVER",
   HTML_ELEMENT_INVALID: "HTML_ELEMENT_INVALID",
   HTML_ELEMENT_NOT_SUPPORT: "HTML_ELEMENT_NOT_SUPPORT",
+};
+
+const _DATA_TYPE = {
+  CSS_PROPERTY: "CSS_PROPERTY",
+  HTML_ELEMENT: "HTML_ELEMENT",
 };
 
 const _TYPE_MAP = {
@@ -34,7 +39,11 @@ const _TYPE_MAP = {
 
 class MDNBrowserCompat {
   static get COMPAT_STATE() {
-    return _MDN_COMPAT_STATE;
+    return _COMPAT_STATE;
+  }
+
+  static get DATA_TYPE() {
+    return _DATA_TYPE;
   }
 
   static get ISSUE_TYPE() {
@@ -82,55 +91,38 @@ class MDNBrowserCompat {
     return this.mdnCompatData.browsers;
   }
 
-  hasCSSProperty(property) {
-    try {
-      this._getSupportMap(property, this.mdnCompatData.css.properties);
-      return true;
-    } catch (_) {
-      return false;
-    }
+  hasTerm(type, ...terms) {
+    return !!this._getCompatTable(type, terms);
   }
 
-  hasHTMLElement(element) {
-    try {
-      this._getSupportMap(element, this.mdnCompatData.html.elements);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  getCSSPropertyState(property, browser, version) {
-    try {
-      const supportMap = this._getSupportMap(property, this.mdnCompatData.css.properties);
-      return this._getState(browser, version, supportMap);
-    } catch (_) {
-      return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
-    }
-  }
-
-  getCSSValueState(property, value, browser, version) {
-    let propertyCompatData = this.mdnCompatData.css.properties[property];
-
-    if (propertyCompatData._aliasOf) {
-      propertyCompatData = this.mdnCompatData.css.properties[propertyCompatData._aliasOf];
+  getSupportState(browser, version, type, ...terms) {
+    const compatTable = this._getCompatTable(type, terms);
+    if (!compatTable) {
+      return _COMPAT_STATE.DATA_NOT_FOUND;
     }
 
-    try {
-      const supportMap = this._getSupportMap(value, propertyCompatData, true);
-      return this._getState(browser, version, supportMap);
-    } catch (_) {
-      return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
+    const supportList = compatTable.support[browser];
+    if (!supportList) {
+      return _COMPAT_STATE.BROWSER_NOT_FOUND;
     }
-  }
 
-  getHTMLElementState(element, browser, version) {
-    try {
-      const supportMap = this._getSupportMap(element, this.mdnCompatData.html.elements);
-      return this._getState(browser, version, supportMap);
-    } catch (_) {
-      return MDNBrowserCompat.COMPAT_STATE.DATA_NOT_FOUND;
+    version = parseFloat(version);
+
+    const terminal = terms[terms.length - 1];
+    const match = terminal.match(/^-\w+-/);
+    const prefix = match ? match[0] : null;
+    for (const support of Array.isArray(supportList) ? supportList : [supportList]) {
+      if((!support.prefix && !prefix) || support.prefix === prefix) {
+        const addedVersion = this._asFloatVersion(support.version_added);
+        const removedVersion = this._asFloatVersion(support.version_removed);
+
+        if (addedVersion <= version && version < removedVersion) {
+          return _COMPAT_STATE.SUPPORTED;
+        }
+      }
     }
+
+    return _COMPAT_STATE.UNSUPPORTED;
   }
 
   /**
@@ -138,7 +130,6 @@ class MDNBrowserCompat {
    * @param browsers - [{ browser: e.g. firefox, version: e.g. 68 }, ...]
    */
   getDeclarationBlockIssues(declarations, browsers) {
-    const { COMPAT_STATE, ISSUE_TYPE } = MDNBrowserCompat;
     const issueList = [];
     let propertyAliasMap = null;
     let valueAliasMap = null;
@@ -146,14 +137,14 @@ class MDNBrowserCompat {
     for (const { name: property, value, isValid, isNameValid } of declarations) {
       if (!isValid) {
         if (!isNameValid) {
-          issueList.push({ type: ISSUE_TYPE.CSS_PROPERTY_INVALID, property });
+          issueList.push({ type: _ISSUE_TYPE.CSS_PROPERTY_INVALID, property });
         } else {
-          issueList.push({ type: ISSUE_TYPE.CSS_VALUE_INVALID, property, value });
+          issueList.push({ type: _ISSUE_TYPE.CSS_VALUE_INVALID, property, value });
         }
         continue;
       }
 
-      const propertyAlias = this._getCSSPropertyAlias(property);
+      const propertyAlias = this._getAlias(_DATA_TYPE.CSS_PROPERTY, property);
       if (propertyAlias) {
         if (!propertyAliasMap) {
           propertyAliasMap = new Map();
@@ -165,7 +156,7 @@ class MDNBrowserCompat {
         continue;
       }
 
-      const valueAlias = this._getCSSValueAlias(property, value);
+      const valueAlias = this._getAlias(_DATA_TYPE.CSS_PROPERTY, property, value);
       if (valueAlias) {
         if (!valueAliasMap) {
           valueAliasMap = new Map();
@@ -182,18 +173,17 @@ class MDNBrowserCompat {
       const valueUnsupportedBrowsers = [];
 
       for (const browser of browsers) {
-        const propertyState =
-          this.getCSSPropertyState(property, browser.name, browser.version);
+        const propertyState = this.getSupportState(browser.name, browser.version,
+                                                   _DATA_TYPE.CSS_PROPERTY, property);
 
-        if (propertyState !== COMPAT_STATE.SUPPORTED) {
+        if (propertyState !== _COMPAT_STATE.SUPPORTED) {
           propertyUnsupportedBrowsers.push(browser);
           continue;
         }
 
-        const valueState =
-          this.getCSSValueState(property, value, browser.name, browser.version);
-        if (valueState === COMPAT_STATE.UNSUPPORTED ||
-            valueState === COMPAT_STATE.BROWSER_NOT_FOUND) {
+        const valueState = this.getSupportState(browser.name, browser.version,
+                                                _DATA_TYPE.CSS_PROPERTY, property, value);
+        if (valueState === _COMPAT_STATE.UNSUPPORTED) {
           valueUnsupportedBrowsers.push(browser);
           continue;
         }
@@ -201,14 +191,14 @@ class MDNBrowserCompat {
 
       if (propertyUnsupportedBrowsers.length) {
         issueList.push(
-          { type: ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT,
+          { type: _ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT,
             property,
             unsupportedBrowsers: propertyUnsupportedBrowsers });
       }
 
       if (valueUnsupportedBrowsers.length) {
         issueList.push(
-          { type: ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT,
+          { type: _ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT,
             property,
             value,
             unsupportedBrowsers: valueUnsupportedBrowsers });
@@ -219,8 +209,9 @@ class MDNBrowserCompat {
       for (const [property, aliases] of propertyAliasMap.entries()) {
         const unsupportedBrowsers = browsers.filter(b => {
           for (const alias of aliases) {
-            if (this.getCSSPropertyState(alias, b.name, b.version) ===
-              COMPAT_STATE.SUPPORTED) {
+            const state =
+              this.getSupportState(b.name, b.version, _DATA_TYPE.CSS_PROPERTY, alias);
+            if (state === _COMPAT_STATE.SUPPORTED) {
               return false;
             }
           }
@@ -229,7 +220,7 @@ class MDNBrowserCompat {
         });
 
         if (unsupportedBrowsers.length) {
-          issueList.push({ type: ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER,
+          issueList.push({ type: _ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER,
                            propertyAliases: aliases,
                            unsupportedBrowsers });
         }
@@ -241,9 +232,9 @@ class MDNBrowserCompat {
         const property = propertyAndValue.split(":")[0];
         const unsupportedBrowsers = browsers.filter(b => {
           for (const alias of aliases) {
-            const state = this.getCSSValueState(property, alias, b.name, b.version);
-            if (state !== COMPAT_STATE.UNSUPPORTED &&
-                state !== COMPAT_STATE.BROWSER_NOT_FOUND) {
+            const state = this.getSupportState(b.name, b.version,
+                                               _DATA_TYPE.CSS_PROPERTY, property, alias);
+            if (state !== _COMPAT_STATE.UNSUPPORTED) {
               return false;
             }
           }
@@ -252,7 +243,7 @@ class MDNBrowserCompat {
         });
 
         if (unsupportedBrowsers.length) {
-          issueList.push({ type: ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER,
+          issueList.push({ type: _ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER,
                            property,
                            valueAliases: aliases,
                            unsupportedBrowsers });
@@ -264,109 +255,106 @@ class MDNBrowserCompat {
   }
 
   getHTMLElementIssues(elements, browsers) {
-    const { COMPAT_STATE, ISSUE_TYPE } = MDNBrowserCompat;
     const issueList = [];
 
     for (const element of elements) {
-      if (!this.hasHTMLElement(element)) {
-        issueList.push({ type: ISSUE_TYPE.HTML_ELEMENT_INVALID, element });
+      if (!this.hasTerm(_DATA_TYPE.HTML_ELEMENT, element)) {
+        issueList.push({ type: _ISSUE_TYPE.HTML_ELEMENT_INVALID, element });
         continue;
       }
 
       const unsupportedBrowsers = browsers.filter(b => {
-        const state = this.getHTMLElementState(element, b.name, b.version);
-        return state !== COMPAT_STATE.SUPPORTED;
+        const state =
+          this.getSupportState(b.name, b.version, _DATA_TYPE.HTML_ELEMENT, element);
+        return state !== _COMPAT_STATE.SUPPORTED;
       });
 
       if (unsupportedBrowsers.length) {
         issueList.push(
-          { type: ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT, element, unsupportedBrowsers });
+          { type: _ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT, element, unsupportedBrowsers });
       }
     }
 
     return issueList;
   }
 
-  _getCSSPropertyAlias(property) {
-    const propertyCompatData = this.mdnCompatData.css.properties[property];
-    return propertyCompatData._aliasOf;
+  _getAlias(type, ...terms) {
+    const node = this._getNode(type, terms);
+    return node ? node._aliasOf : null;
   }
 
-  _getCSSValueAlias(property, value) {
-    const compatData = this.mdnCompatData.css.properties[property];
-    for (let key in compatData) {
-      if (value.startsWith(key)) {
-        return compatData[key]._aliasOf;
-      }
-    }
-  }
+  _getChildNode(name, parent) {
+    name = name.toLowerCase();
 
-  _getState(browser, version, supportMap) {
-    const supportList = supportMap[browser];
+    let child = parent[name];
 
-    if (!supportList) {
-      return MDNBrowserCompat.COMPAT_STATE.BROWSER_NOT_FOUND;
-    }
-
-    version = parseFloat(version);
-
-    for (const support of Array.isArray(supportList) ? supportList : [supportList]) {
-      // Ignore things that have prefix or flags
-      if (support.prefix || support.flags) {
-        continue;
+    if (!child) {
+      for (let field in parent) {
+        if (name.startsWith(field)) {
+          child = parent[field];
+          break;
+        }
       }
 
-      const addedVersion = this._asFloatVersion(support.version_added);
-      const removedVersion = this._asFloatVersion(support.version_removed);
-
-      if (addedVersion <= version && version < removedVersion) {
-        return MDNBrowserCompat.COMPAT_STATE.SUPPORTED;
+      if (!child) {
+        return null;
       }
     }
 
-    return MDNBrowserCompat.COMPAT_STATE.UNSUPPORTED;
+    if (child._aliasOf) {
+      child = parent[child._aliasOf]
+    }
+
+    return child;
   }
 
-  _getSupportMap(target, compatDataTable, isValue) {
-    target = target.toLowerCase();
+  _getCompatTable(type, terms) {
+    let node = this._getNode(type, terms);
 
-    let compatData = compatDataTable[target];
+    if (!node) {
+      return null;
+    }
 
-    if (!compatData && isValue) {
-      for (let key in compatDataTable) {
-        if (target.startsWith(key)) {
-          compatData = compatDataTable[key];
+    if (!node.__compat) {
+      for (let field in node) {
+        // TODO: We don't have a way to know the context for now.
+        //       Thus, we choose first context if need.
+        if (field.endsWith("_context")) {
+          node = node[field];
           break;
         }
       }
     }
 
-    if (!compatData) {
-      throw new Error(`${ target } data was not found`);
-    }
+    return node.__compat;
+  }
 
-    for (let field in compatData) {
-      if (field === "__compat") {
+  _getNode(type, terms) {
+    let node = null;
+
+    switch (type) {
+      case _DATA_TYPE.CSS_PROPERTY: {
+        node = this.mdnCompatData.css.properties;
         break;
       }
-
-      // TODO: We don't have a way to know the context for now.
-      //       Thus, we choose first context if need.
-      if (field.endsWith("_context")) {
-        compatData = compatData[field];
+      case _DATA_TYPE.HTML_ELEMENT: {
+        node = this.mdnCompatData.html.elements;
         break;
       }
     }
 
-    if (!compatData.__compat) {
-      throw new Error(`${ target } __compat dir was not found`);
+    if (!node) {
+      return null;
     }
 
-    if (!compatData.__compat.support) {
-      throw new Error(`${ target } __compat.support dir was not found`);
+    for (const term of terms) {
+      node = this._getChildNode(term, node);
+      if (!node) {
+        return null;
+      }
     }
 
-    return compatData.__compat.support;
+    return node;
   }
 
   _asFloatVersion(version = false) {
@@ -410,48 +398,11 @@ class MDNBrowserCompat {
       this._flattenItem(aliases, key, compatData);
     }
 
-    for (const { alias, aliasOf, context, runtime,
-                 version_added, version_removed, flags } of aliases) {
-
+    for (const { alias, aliasOf } of aliases) {
       if (!map[alias]) {
-        map[alias] = {}
+        map[alias] = {};
       }
-
-      let compatData;
-      if (context) {
-        if (!map[alias][context]) {
-          map[alias][context] = {};
-        }
-        compatData = map[alias][context];
-      } else {
-        if (!map[alias]) {
-          map[alias] = {};
-        }
-        compatData = map[alias];
-      }
-
-      if (!compatData.__compat) {
-        compatData.__compat = {};
-      }
-
-      if (!compatData.__compat.support) {
-        compatData.__compat.support = {};
-      }
-
-      compatData._aliasOf = aliasOf;
-
-      const support = compatData.__compat.support;
-      if (!support[runtime]) {
-        support[runtime] = [];
-      } else if (!Array.isArray(support[runtime])) {
-        support[runtime] = [support[runtime]];
-      }
-
-      const supportList = support[runtime];
-      supportList.push({
-        version_added, version_removed, flags,
-      });
-
+      map[alias]._aliasOf = aliasOf;
       // Want to handle the entity property as same as alias property.
       map[aliasOf]._aliasOf = aliasOf;
     }
@@ -461,15 +412,14 @@ class MDNBrowserCompat {
     if (compatData.__compat) {
       for (let runtime in compatData.__compat.support) {
         const supportStates = compatData.__compat.support[runtime] || [];
-        for (const { alternative_name, prefix, version_added, version_removed, flags }
+        for (const { alternative_name, prefix }
           of Array.isArray(supportStates) ? supportStates : [supportStates]) {
           if (!prefix && !alternative_name) {
             continue;
           }
 
           const alias = alternative_name || prefix + key;
-          aliases.push({ alias, aliasOf: key, context, runtime,
-                         version_added, version_removed, flags });
+          aliases.push({ alias, aliasOf: key });
         }
       }
 
