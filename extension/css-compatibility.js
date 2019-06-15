@@ -31,7 +31,7 @@ class CSSCompatibility {
 
     for (const { ruleId, declarations } of declarationBlocks) {
       const issues =
-        this._mdnBrowserCompat.getDeclarationBlockIssues(declarations, targetBrowsers)
+        this._mdnBrowserCompat.getCSSDeclarationBlockIssues(declarations, targetBrowsers)
                               .map(issue => Object.assign(issue, { ruleId }));
       issueList.push(...issues);
     }

@@ -129,7 +129,7 @@ class MDNBrowserCompat {
    * @param declarations - pageStyle.getApplied()[x].rule.declarations
    * @param browsers - [{ browser: e.g. firefox, version: e.g. 68 }, ...]
    */
-  getDeclarationBlockIssues(declarations, browsers) {
+  getCSSDeclarationBlockIssues(declarations, browsers) {
     const issueList = [];
     let propertyAliasMap = null;
     let valueAliasMap = null;
@@ -357,13 +357,6 @@ class MDNBrowserCompat {
     return node;
   }
 
-  _asFloatVersion(version = false) {
-    if (version === true) {
-      return 0;
-    }
-    return version === false ? Number.MAX_VALUE : parseFloat(version);
-  }
-
   _flattenDeeply(map, root) {
     this._flattenMap(map);
 
@@ -431,5 +424,12 @@ class MDNBrowserCompat {
         this._flattenItem(aliases, key, compatData[field], field);
       }
     }
+  }
+
+  _asFloatVersion(version = false) {
+    if (version === true) {
+      return 0;
+    }
+    return version === false ? Number.MAX_VALUE : parseFloat(version);
   }
 }
