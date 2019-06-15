@@ -91,10 +91,6 @@ class MDNBrowserCompat {
     return this.mdnCompatData.browsers;
   }
 
-  hasTerm(type, ...terms) {
-    return !!this._getCompatTable(type, terms);
-  }
-
   getSupportState(browser, version, type, ...terms) {
     const compatTable = this._getCompatTable(type, terms);
     if (!compatTable) {
@@ -123,6 +119,10 @@ class MDNBrowserCompat {
     }
 
     return _COMPAT_STATE.UNSUPPORTED;
+  }
+
+  hasTerm(type, ...terms) {
+    return !!this._getCompatTable(type, terms);
   }
 
   /**
@@ -189,26 +189,38 @@ class MDNBrowserCompat {
         }
       }
 
-      if (propertyUnsupportedBrowsers.length) {
-        issueList.push(
-          { type: _ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT,
-            property,
-            unsupportedBrowsers: propertyUnsupportedBrowsers });
+      const propertyStatus = this._getStatus(_DATA_TYPE.CSS_PROPERTY, property);
+      if (propertyUnsupportedBrowsers.length ||
+          propertyStatus.deprecated ||
+          propertyStatus.experimental) {
+        issueList.push({
+          type: _ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT,
+          deprecated: propertyStatus.deprecated,
+          experimental: propertyStatus.experimental,
+          property,
+          unsupportedBrowsers: propertyUnsupportedBrowsers,
+        });
       }
 
-      if (valueUnsupportedBrowsers.length) {
-        issueList.push(
-          { type: _ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT,
-            property,
-            value,
-            unsupportedBrowsers: valueUnsupportedBrowsers });
+      const valueStatus = this._getStatus(_DATA_TYPE.CSS_PROPERTY, property, value);
+      if (valueUnsupportedBrowsers.length ||
+          valueStatus.deprecated ||
+          valueStatus.experimental) {
+        issueList.push({
+          type: _ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT,
+          deprecated: valueStatus.deprecated,
+          experimental: valueStatus.experimental,
+          property,
+          value,
+          unsupportedBrowsers: valueUnsupportedBrowsers,
+        });
       }
     }
 
     if (propertyAliasMap) {
-      for (const [property, aliases] of propertyAliasMap.entries()) {
+      for (const [property, propertyAliases] of propertyAliasMap.entries()) {
         const unsupportedBrowsers = browsers.filter(b => {
-          for (const alias of aliases) {
+          for (const alias of propertyAliases) {
             const state =
               this.getSupportState(b.name, b.version, _DATA_TYPE.CSS_PROPERTY, alias);
             if (state === _COMPAT_STATE.SUPPORTED) {
@@ -219,19 +231,24 @@ class MDNBrowserCompat {
           return true;
         });
 
-        if (unsupportedBrowsers.length) {
-          issueList.push({ type: _ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER,
-                           propertyAliases: aliases,
-                           unsupportedBrowsers });
+        const status = this._getStatus(_DATA_TYPE.CSS_PROPERTY, property);
+        if (unsupportedBrowsers.length || status.deprecated || status.experimental) {
+          issueList.push({
+            type: _ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER,
+            deprecated: status.deprecated,
+            experimental: status.experimental,
+            propertyAliases,
+            unsupportedBrowsers,
+          });
         }
       }
     }
 
     if (valueAliasMap) {
-      for (const [propertyAndValue, aliases] of valueAliasMap.entries()) {
-        const property = propertyAndValue.split(":")[0];
+      for (const [propertyAndValue, valueAliases] of valueAliasMap.entries()) {
+        const [property, value] = propertyAndValue.split(":");
         const unsupportedBrowsers = browsers.filter(b => {
-          for (const alias of aliases) {
+          for (const alias of valueAliases) {
             const state = this.getSupportState(b.name, b.version,
                                                _DATA_TYPE.CSS_PROPERTY, property, alias);
             if (state !== _COMPAT_STATE.UNSUPPORTED) {
@@ -242,11 +259,16 @@ class MDNBrowserCompat {
           return true;
         });
 
-        if (unsupportedBrowsers.length) {
-          issueList.push({ type: _ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER,
-                           property,
-                           valueAliases: aliases,
-                           unsupportedBrowsers });
+        const status = this._getStatus(_DATA_TYPE.CSS_PROPERTY, property, value);
+        if (unsupportedBrowsers.length || status.deprecated || status.experimental) {
+          issueList.push({
+            type: _ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER,
+            deprecated: status.deprecated,
+            experimental: status.experimental,
+            property,
+            valueAliases,
+            unsupportedBrowsers,
+          });
         }
       }
     }
@@ -269,9 +291,15 @@ class MDNBrowserCompat {
         return state !== _COMPAT_STATE.SUPPORTED;
       });
 
-      if (unsupportedBrowsers.length) {
-        issueList.push(
-          { type: _ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT, element, unsupportedBrowsers });
+      const status = this._getStatus(_DATA_TYPE.HTML_ELEMENT, element);
+      if (unsupportedBrowsers.length || status.deprecated || status.experimental) {
+        issueList.push({
+          type: _ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT,
+          deprecated: status.deprecated,
+          experimental: status.experimental,
+          element,
+          unsupportedBrowsers,
+        });
       }
     }
 
@@ -355,6 +383,11 @@ class MDNBrowserCompat {
     }
 
     return node;
+  }
+
+  _getStatus(type, ...terms) {
+    const compatTable = this._getCompatTable(type, terms);
+    return compatTable ? compatTable.status : {};
   }
 
   _flattenDeeply(map, root) {

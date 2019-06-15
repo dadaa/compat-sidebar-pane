@@ -60,7 +60,7 @@ function renderIssue(issue, isInSelectedNode) {
     case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
     case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER:
     case ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT: {
-      liEl.classList.add("information");
+      liEl.classList.add((issue.deprecated ? "warning" : "information"));
       break;
     }
   }
@@ -114,28 +114,66 @@ function renderSubject(issue) {
 }
 
 function renderPredicate(issue) {
-  let contentEls = null;
+  let contentEls = [];
+
+  if (issue.deprecated) {
+    const deprecatedEl = renderLabel("deprecated");
+    deprecatedEl.classList.add("deprecated");
+    contentEls.push(
+      renderLabel(" is "),
+      deprecatedEl,
+    );
+  }
+
+  if (issue.experimental) {
+    const experimentalEl = renderLabel("experimental");
+    experimentalEl.classList.add("experimental");
+    contentEls.push(
+      renderLabel((issue.deprecated ? " and " : " is ")),
+      experimentalEl,
+    );
+  }
+
+  if (issue.deprecated || issue.experimental) {
+    contentEls.push(renderLabel("."));
+  }
 
   switch (issue.type) {
     case ISSUE_TYPE.CSS_PROPERTY_INVALID:
     case ISSUE_TYPE.CSS_VALUE_INVALID:
     case ISSUE_TYPE.HTML_ELEMENT_INVALID: {
-      contentEls = [renderLabel(" is invalid.")];
+      contentEls.push(renderLabel(" is invalid."));
       break;
     }
     case ISSUE_TYPE.CSS_PROPERTY_NOT_SUPPORT:
     case ISSUE_TYPE.CSS_VALUE_NOT_SUPPORT:
     case ISSUE_TYPE.HTML_ELEMENT_NOT_SUPPORT: {
-      contentEls = [renderLabel(" is not supported in"),
-                    renderBrowsersElement(issue.unsupportedBrowsers),
-                    renderLabel(".")]
+      if (issue.unsupportedBrowsers.length) {
+        if (issue.deprecated || issue.experimental) {
+          contentEls.push(renderLabel(" And "));
+        }
+
+        contentEls.push(
+          renderLabel(" is not supported in"),
+          renderBrowsersElement(issue.unsupportedBrowsers),
+          renderLabel("."),
+        );
+      }
       break;
     }
     case ISSUE_TYPE.CSS_PROPERTY_ALIASES_NOT_COVER:
     case ISSUE_TYPE.CSS_VALUE_ALIASES_NOT_COVER: {
-      contentEls = [renderLabel(" could not cover"),
-                    renderBrowsersElement(issue.unsupportedBrowsers),
-                    renderLabel(".")]
+      if (issue.unsupportedBrowsers.length) {
+        if (issue.deprecated || issue.experimental) {
+          contentEls.push(renderLabel(" And "));
+        }
+
+        contentEls.push(
+          renderLabel(" could not cover"),
+          renderBrowsersElement(issue.unsupportedBrowsers),
+          renderLabel(".")
+        );
+      }
       break;
     }
   }
